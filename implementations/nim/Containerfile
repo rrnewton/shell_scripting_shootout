@@ -1,4 +1,4 @@
-FROM docker.io/nimlang/nim:2.2.10
+FROM docker.io/nimlang/nim:2.2.10@sha256:4018f7a1d6a54d735412678b7a29c02eb453dd9f8a9dad93128681d70c47a60e
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git python3 time \

@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.96.0-slim-bookworm
+FROM docker.io/library/rust:1.96.0-slim-bookworm@sha256:4732ca96fd086cb9be682050c3f0176288eebaac2b80aa2bcefccfaf198e1950
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends git python3 time \

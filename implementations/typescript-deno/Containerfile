@@ -1,4 +1,4 @@
-FROM docker.io/denoland/deno:debian-2.9.3
+FROM docker.io/denoland/deno:debian-2.9.3@sha256:6288db6be1c26473bb9d1843f906d9a219c0dda57fd85de4aac90296951cf6ef
 
 USER root
 RUN apt-get update \

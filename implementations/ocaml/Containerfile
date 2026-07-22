@@ -1,4 +1,4 @@
-FROM docker.io/ocaml/opam:debian-12-ocaml-5.3
+FROM docker.io/ocaml/opam:debian-12-ocaml-5.3@sha256:bbaac53e502f6602013d8967c3a54cfcb898b556f453ab72e8e23966c3c681df
 
 ARG http_proxy
 ARG https_proxy
