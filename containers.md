@@ -24,6 +24,13 @@ Run the measurements inside each successfully built image and write raw JSON to
 standard-proxy-env python3 harness/containers.py --benchmark-runs 30
 ```
 
+After images have already passed conformance, repeat only the measurements
+without rebuilding them:
+
+```sh
+python3 harness/containers.py --benchmark-only --benchmark-runs 30
+```
+
 The same run writes `results/raw/container-bootstrap.json` with build wall time
 and final image size. Use `--no-cache` when collecting reportable bootstrap
 numbers; base-image download time remains separately visible in the build log.
@@ -31,7 +38,9 @@ numbers; base-image download time remains separately visible in the build log.
 The images are correctness and reproducibility environments. Performance
 measurements run *inside* an already-running container or directly on the host;
 container creation and `podman run` startup are never included in language
-invocation timings.
+invocation timings. Conformance and benchmark containers run with networking
+disabled after the image build, which also verifies that cached dependencies
+are sufficient for unchanged source execution.
 
 Builds use host networking so developer-box proxy endpoints supplied by
 `standard-proxy-env` remain reachable from build steps:

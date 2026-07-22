@@ -28,11 +28,17 @@ class _RelayHandler(socketserver.BaseRequestHandler):
                 if not readable:
                     continue
                 for source in readable:
-                    data = source.recv(64 * 1024)
+                    try:
+                        data = source.recv(64 * 1024)
+                    except (ConnectionResetError, OSError):
+                        return
                     if not data:
                         return
                     destination = upstream if source is self.request else self.request
-                    destination.sendall(data)
+                    try:
+                        destination.sendall(data)
+                    except (BrokenPipeError, ConnectionResetError, OSError):
+                        return
 
 
 def _needs_bridge(host: str, port: int) -> bool:

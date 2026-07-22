@@ -38,6 +38,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--candidate", action="append", default=[])
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument(
+        "--benchmark-only",
+        action="store_true",
+        help="benchmark existing verified images without building or running conformance",
+    )
+    parser.add_argument(
         "--benchmark-runs",
         type=int,
         help="after conformance, benchmark inside each image and save raw JSON",
@@ -47,6 +52,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if args.benchmark_only and args.no_cache:
+        raise ValueError("--benchmark-only and --no-cache cannot be combined")
+    if args.benchmark_only and not args.benchmark_runs:
+        raise ValueError("--benchmark-only requires --benchmark-runs")
     engine = args.engine or engine_default()
     selected = set(args.candidate) if args.candidate else None
     implementations = ROOT / "implementations"
@@ -66,7 +75,12 @@ def main() -> int:
     ).stdout.strip()
 
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-    bridge_context = bridged_proxy(proxy) if engine == "podman" else contextlib.nullcontext(proxy)
+    if args.benchmark_only:
+        bridge_context = contextlib.nullcontext(None)
+    elif engine == "podman":
+        bridge_context = bridged_proxy(proxy)
+    else:
+        bridge_context = contextlib.nullcontext(proxy)
     bootstrap: dict[str, object] = {
         "schema_version": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -80,42 +94,45 @@ def main() -> int:
     with bridge_context as build_proxy:
         for name, containerfile in found:
             tag = f"shell-scripting-shootout-{name}:local"
-            build = [
-                engine,
-                "build",
-                "--network",
-                "host",
-                "--tag",
-                tag,
-                "--file",
-                str(containerfile),
-            ]
-            if build_proxy:
-                for variable in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
-                    build.extend(["--build-arg", f"{variable}={build_proxy}"])
-            if args.no_cache:
-                build.append("--no-cache")
-            build.append(str(ROOT))
-            build_started = time.perf_counter()
-            run(build)
-            build_seconds = time.perf_counter() - build_started
-            inspect = subprocess.run(
-                [engine, "image", "inspect", tag, "--format", "{{.Size}}"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            bootstrap_candidates[name] = {
-                "build_wall_seconds": build_seconds,
-                "image_size_bytes": int(inspect.stdout.strip()),
-            }
-            run([engine, "run", "--rm", tag])
+            if not args.benchmark_only:
+                build = [
+                    engine,
+                    "build",
+                    "--network",
+                    "host",
+                    "--tag",
+                    tag,
+                    "--file",
+                    str(containerfile),
+                ]
+                if build_proxy:
+                    for variable in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
+                        build.extend(["--build-arg", f"{variable}={build_proxy}"])
+                if args.no_cache:
+                    build.append("--no-cache")
+                build.append(str(ROOT))
+                build_started = time.perf_counter()
+                run(build)
+                build_seconds = time.perf_counter() - build_started
+                inspect = subprocess.run(
+                    [engine, "image", "inspect", tag, "--format", "{{.Size}}"],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                bootstrap_candidates[name] = {
+                    "build_wall_seconds": build_seconds,
+                    "image_size_bytes": int(inspect.stdout.strip()),
+                }
+                run([engine, "run", "--rm", "--network", "none", tag])
             if args.benchmark_runs:
                 command = [
                     engine,
                     "run",
                     "--rm",
+                    "--network",
+                    "none",
                     "--env",
                     f"SHOOTOUT_GIT_COMMIT={git_commit}",
                     tag,
@@ -138,10 +155,11 @@ def main() -> int:
                 result.parent.mkdir(parents=True, exist_ok=True)
                 result.write_text(process.stdout, encoding="utf-8")
                 print(f"wrote {result}")
-    bootstrap_path = ROOT / "results" / "raw" / "container-bootstrap.json"
-    bootstrap_path.parent.mkdir(parents=True, exist_ok=True)
-    bootstrap_path.write_text(json.dumps(bootstrap, indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {bootstrap_path}")
+    if not args.benchmark_only:
+        bootstrap_path = ROOT / "results" / "raw" / "container-bootstrap.json"
+        bootstrap_path.parent.mkdir(parents=True, exist_ok=True)
+        bootstrap_path.write_text(json.dumps(bootstrap, indent=2) + "\n", encoding="utf-8")
+        print(f"wrote {bootstrap_path}")
     return 0
 
 
