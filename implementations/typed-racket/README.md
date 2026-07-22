@@ -6,7 +6,7 @@ compiles changed content with `raco make`, then executes the cached bytecode.
 
 | Racket | Runtime | Verification |
 | --- | --- | --- |
-| 7.9 BC | Fedora host package | `raco make`, unit tests, conformance suite |
+| 7.9 BC | CentOS Stream 9 system package | `raco make`, unit tests, conformance suite |
 | 8.18 CS | pinned `racket:8.18-full` image | image build, unit tests, conformance suite |
 
 Racket 7.9 is the oldest tested release. In particular, compatibility does not
