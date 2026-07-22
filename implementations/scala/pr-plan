@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+set -eu
+
+directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -z "${COURSIER_REPOSITORIES:-}" ]; then
+  export COURSIER_REPOSITORIES=https://maven-central.storage-download.googleapis.com/maven2
+fi
+exec scala-cli run --server=false --main-class prPlan "$directory" -- "$@"

@@ -1,0 +1,34 @@
+FROM docker.io/library/eclipse-temurin:17.0.16_8-jdk-alpine@sha256:444fcc044076e6f4541e9dc4b5638ba396b2e90cf532341a48b7c342b6ada288
+
+RUN apk add --no-cache ca-certificates curl git python3 time
+
+RUN mkdir -p /opt/scala-cli \
+    && curl --fail --location --retry 3 \
+      https://github.com/VirtusLab/scala-cli/releases/download/v1.15.0/scala-cli.jar \
+      --output /opt/scala-cli/scala-cli.jar \
+    && echo "3110b5009308b450a0a1a3c851ed2abf2d5f3468ae7e8a833e6d05f5019e332a  /opt/scala-cli/scala-cli.jar" \
+      | sha256sum --check
+
+COPY implementations/scala/scala-cli-container /usr/local/bin/scala-cli
+RUN chmod 0755 /usr/local/bin/scala-cli
+
+WORKDIR /work
+COPY . .
+
+RUN set -eu; \
+    proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"; \
+    if [ -n "$proxy" ]; then \
+      address=${proxy#*://}; address=${address#*@}; \
+      case "$address" in \
+        \[*\]:*) host=${address#\[}; host=${host%%\]*}; port=${address##*:} ;; \
+        *:*) host=${address%%:*}; port=${address##*:} ;; \
+        *) host=$address; port=80 ;; \
+      esac; \
+      export JAVA_TOOL_OPTIONS="-Dhttps.proxyHost=$host -Dhttps.proxyPort=$port -Dhttp.proxyHost=$host -Dhttp.proxyPort=$port"; \
+    fi; \
+    export COURSIER_REPOSITORIES=https://maven-central.storage-download.googleapis.com/maven2; \
+    scala-cli test --server=false implementations/scala; \
+    implementations/scala/pr-plan --help >/dev/null; \
+    python3 harness/conformance.py --candidate scala --require scala
+
+CMD ["python3", "harness/conformance.py", "--candidate", "scala", "--require", "scala"]
