@@ -1,7 +1,7 @@
 FROM docker.io/library/python:3.13.5-slim-bookworm
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends git \
+    && apt-get install --yes --no-install-recommends git time \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work

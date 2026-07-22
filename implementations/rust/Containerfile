@@ -1,7 +1,7 @@
 FROM docker.io/library/rust:1.96.0-slim-bookworm
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends git python3 \
+    && apt-get install --yes --no-install-recommends git python3 time \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rustup component add rustfmt clippy
