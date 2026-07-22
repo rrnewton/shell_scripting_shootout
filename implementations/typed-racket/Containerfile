@@ -1,0 +1,16 @@
+FROM docker.io/racket/racket:8.18-full@sha256:c9104a6ce9df82947c5753718606cca305aeaf80c0b79038546625656277f56d
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git python3 time \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY . .
+
+RUN cd implementations/typed-racket \
+    && rm -rf compiled .pr-plan-build.lock \
+    && raco make main.rkt tests.rkt \
+    && raco test tests.rkt \
+    && touch compiled/pr-plan-build.stamp
+
+CMD ["python3", "harness/conformance.py", "--candidate", "typed-racket", "--require", "typed-racket"]

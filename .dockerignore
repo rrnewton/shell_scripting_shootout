@@ -12,6 +12,7 @@ implementations/go/.cache
 **/node_modules
 **/target
 **/_build
+**/compiled
 **/.bsp
 **/.scala-build
 **/nimcache

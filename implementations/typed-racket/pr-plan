@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+entrypoint="$root/main.rkt"
+compiled="$root/compiled/main_rkt.zo"
+stamp="$root/compiled/pr-plan-build.stamp"
+lock="$root/.pr-plan-build.lock"
+
+needs_build() {
+  [ ! -f "$compiled" ] || [ ! -f "$stamp" ] && return 0
+  find "$root" -maxdepth 1 -type f -name '*.rkt' -newer "$stamp" -print -quit \
+    | grep -q .
+}
+
+while needs_build; do
+  if mkdir "$lock" 2>/dev/null; then
+    trap 'rmdir "$lock" 2>/dev/null || true' 0 1 2 3 15
+    if needs_build; then
+      command -v raco >/dev/null 2>&1 || {
+        echo "pr-plan: error: raco is not installed" >&2
+        exit 127
+      }
+      raco make "$entrypoint"
+      touch "$stamp"
+    fi
+    rmdir "$lock"
+    trap - 0 1 2 3 15
+  else
+    attempts=0
+    while [ -d "$lock" ] && [ "$attempts" -lt 6000 ]; do
+      sleep 0.05
+      attempts=$((attempts + 1))
+    done
+    if [ -d "$lock" ]; then
+      echo "pr-plan: error: timed out waiting for build lock $lock" >&2
+      exit 1
+    fi
+  fi
+done
+
+exec racket "$entrypoint" "$@"
