@@ -17,3 +17,8 @@ base conflicts, pair conflicts, and ancestry edges from that repository.
 Fixture commits use fixed identities and timestamps. Canonical candidate output
 omits commit IDs, so results remain stable if a future Git version changes an
 object-format detail.
+
+For a real repository, use the shared, untimed GitHub acquisition step described
+in [`docs/live-github.md`](../docs/live-github.md). It calls `gh`, fetches and
+verifies local refs, and writes this same Git-mode input schema for every
+candidate.
