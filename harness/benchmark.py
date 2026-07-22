@@ -18,6 +18,8 @@ from typing import Sequence
 
 from conformance import FIXTURE_REPO, ROOT, candidates
 from create_git_fixture import create_fixture
+from create_large_fixture import DEFAULT_OUTPUT as LARGE_INPUT
+from create_large_fixture import build_fixture
 
 
 def percentile(sorted_values: list[float], percentile_value: float) -> float:
@@ -101,6 +103,8 @@ def main() -> int:
     if not found:
         raise RuntimeError("no runnable candidates found")
     create_fixture(FIXTURE_REPO)
+    LARGE_INPUT.parent.mkdir(parents=True, exist_ok=True)
+    LARGE_INPUT.write_text(json.dumps(build_fixture(400), indent=2) + "\n", encoding="utf-8")
 
     result: dict[str, object] = {
         "schema_version": 1,
@@ -121,7 +125,13 @@ def main() -> int:
         absolute = str(launcher.resolve())
         scenarios = {
             "help": [absolute, "--help"],
-            "pure": [absolute, "pure", "--input", str(ROOT / "fixtures" / "pure-input.json")],
+            "pure_small": [
+                absolute,
+                "pure",
+                "--input",
+                str(ROOT / "fixtures" / "pure-input.json"),
+            ],
+            "pure_large": [absolute, "pure", "--input", str(LARGE_INPUT)],
             "git": [
                 absolute,
                 "git",
