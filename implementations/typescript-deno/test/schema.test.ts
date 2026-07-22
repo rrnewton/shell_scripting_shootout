@@ -61,6 +61,20 @@ Deno.test("runtime decoder rejects duplicates, dangling edges, and unsafe revisi
     () => parsePureInput({ ...pure, prs: [...pure.prs, first] }),
     "duplicate PR number",
   );
+  const pureSecond = pure.prs[1];
+  if (pureSecond === undefined) throw new Error("fixture must contain two PRs");
+  assertThrows(
+    () =>
+      parsePureInput({
+        ...pure,
+        prs: [
+          first,
+          { ...pureSecond, head_ref: first.head_ref },
+          ...pure.prs.slice(2),
+        ],
+      }),
+    "head_ref values must be unique",
+  );
   assertThrows(
     () =>
       parsePureInput({
@@ -74,6 +88,20 @@ Deno.test("runtime decoder rejects duplicates, dangling edges, and unsafe revisi
   const git = parseGitInput(rawGit);
   const gitFirst = git.prs[0];
   if (gitFirst === undefined) throw new Error("fixture must contain a PR");
+  const gitSecond = git.prs[1];
+  if (gitSecond === undefined) throw new Error("fixture must contain two PRs");
+  assertThrows(
+    () =>
+      parseGitInput({
+        ...git,
+        prs: [
+          gitFirst,
+          { ...gitSecond, head_ref: gitFirst.head_ref },
+          ...git.prs.slice(2),
+        ],
+      }),
+    "head_ref values must be unique",
+  );
   assertThrows(
     () =>
       parseGitInput({

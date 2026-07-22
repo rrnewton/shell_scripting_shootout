@@ -45,16 +45,14 @@ export async function analyzeGit(input: GitInput, gitDirectory: string): Promise
   if (information === undefined || !information.isDirectory()) {
     throw new Error(`Git directory is not a directory: ${absoluteGitDirectory}`);
   }
-  const dotGit = resolve(absoluteGitDirectory, ".git");
-  const dotGitInformation = await stat(dotGit).catch(() => undefined);
-  const objectDirectory = dotGitInformation?.isDirectory() === true ? dotGit : absoluteGitDirectory;
+  await runGit(absoluteGitDirectory, ["rev-parse", "--git-dir"], [0]);
 
   const resolvedPrs: ResolvedPr[] = [];
   for (const pr of [...input.prs].sort((a, b) => a.number - b.number)) {
-    const base = await resolveRevision(objectDirectory, pr.git_base);
-    const head = await resolveRevision(objectDirectory, pr.git_head);
-    const files = await changedFiles(objectDirectory, base, head);
-    const baseConflictPaths = await mergeConflictPaths(objectDirectory, base, head);
+    const base = await resolveRevision(absoluteGitDirectory, pr.git_base);
+    const head = await resolveRevision(absoluteGitDirectory, pr.git_head);
+    const files = await changedFiles(absoluteGitDirectory, base, head);
+    const baseConflictPaths = await mergeConflictPaths(absoluteGitDirectory, base, head);
     resolvedPrs.push({ input: pr, base, head, files, baseConflictPaths });
   }
 
@@ -66,7 +64,7 @@ export async function analyzeGit(input: GitInput, gitDirectory: string): Promise
     for (let rightIndex = leftIndex + 1; rightIndex < resolvedPrs.length; rightIndex += 1) {
       const right = resolvedPrs[rightIndex];
       if (right === undefined) continue;
-      const paths = await mergeConflictPaths(objectDirectory, left.head, right.head);
+      const paths = await mergeConflictPaths(absoluteGitDirectory, left.head, right.head);
       if (paths.length > 0) {
         conflictEdges.push(normalizeConflictEdge({
           a: left.input.number,
@@ -75,9 +73,9 @@ export async function analyzeGit(input: GitInput, gitDirectory: string): Promise
         }));
       }
       if (left.head !== right.head) {
-        if (await isAncestor(objectDirectory, left.head, right.head)) {
+        if (await isAncestor(absoluteGitDirectory, left.head, right.head)) {
           ancestryEdges.push({ before: left.input.number, after: right.input.number });
-        } else if (await isAncestor(objectDirectory, right.head, left.head)) {
+        } else if (await isAncestor(absoluteGitDirectory, right.head, left.head)) {
           ancestryEdges.push({ before: right.input.number, after: left.input.number });
         }
       }
@@ -163,16 +161,30 @@ export async function runGit(
   args: readonly string[],
   expectedExitCodes: readonly number[],
 ): Promise<GitResult> {
-  const command = ["git", `--git-dir=${gitDirectory}`, "--no-pager", ...args];
+  const command = ["git", "-C", gitDirectory, "--no-pager", ...args];
+  const env = { ...process.env };
+  for (const name of [
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_CONFIG_COUNT",
+    "GIT_CONFIG_PARAMETERS",
+    "GIT_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_WORK_TREE",
+  ]) {
+    delete env[name];
+  }
   const child = Bun.spawn(command, {
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
     env: {
-      ...process.env,
+      ...env,
       LC_ALL: "C",
       GIT_CONFIG_NOSYSTEM: "1",
       GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_OPTIONAL_LOCKS: "0",
       GIT_TERMINAL_PROMPT: "0",
     },
   });

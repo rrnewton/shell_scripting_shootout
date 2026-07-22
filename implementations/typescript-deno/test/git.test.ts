@@ -57,6 +57,50 @@ Deno.test("Git runner distinguishes expected status 1 from failures", async () =
   }
 });
 
+Deno.test("Git analysis accepts linked worktree roots and bare repositories", async () => {
+  const fixture = await createGitFixture();
+  const linkedDirectory = `${fixture.directory}-linked`;
+  const bareDirectory = `${fixture.directory}-bare`;
+  try {
+    await command([
+      "git",
+      "-C",
+      fixture.directory,
+      "worktree",
+      "add",
+      "-q",
+      "--detach",
+      linkedDirectory,
+      fixture.left,
+    ]);
+    await command([
+      "git",
+      "clone",
+      "-q",
+      "--bare",
+      fixture.directory,
+      bareDirectory,
+    ]);
+    assert((await Deno.stat(`${linkedDirectory}/.git`)).isFile);
+
+    const input = parseGitInput({
+      schema_version: 1,
+      repository: "acme/git-layouts",
+      prs: [gitPr(10, "feature/left", "main", fixture.left, fixture.base)],
+    });
+    for (const directory of [linkedDirectory, bareDirectory]) {
+      const analysis = await analyzeGit(input, directory);
+      assertEquals(analysis.nodes.map((node) => node.files), [
+        ["left.txt", "shared.txt"],
+      ]);
+    }
+  } finally {
+    await removeIfPresent(linkedDirectory);
+    await removeIfPresent(bareDirectory);
+    await Deno.remove(fixture.directory, { recursive: true });
+  }
+});
+
 interface GitFixture {
   readonly directory: string;
   readonly base: string;
@@ -134,6 +178,14 @@ async function command(args: readonly string[]): Promise<string> {
     );
   }
   return new TextDecoder().decode(output.stdout);
+}
+
+async function removeIfPresent(path: string): Promise<void> {
+  try {
+    await Deno.remove(path, { recursive: true });
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error;
+  }
 }
 
 function gitPr(

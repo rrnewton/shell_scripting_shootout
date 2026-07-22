@@ -127,7 +127,7 @@ export async function runGit(
   args: readonly string[],
   expectedExitCodes: readonly number[],
 ): Promise<GitResult> {
-  const fullArgs = [`--git-dir=${gitDirectory}`, "--no-pager", ...args];
+  const fullArgs = ["-C", gitDirectory, "--no-pager", ...args];
   let child: Deno.ChildProcess;
   try {
     child = new Deno.Command("git", {
@@ -243,17 +243,8 @@ async function resolveGitDirectory(path: string): Promise<string> {
       `Git directory is not a directory: ${absolute}`,
     );
   }
-  const dotGit = `${absolute.replace(/\/$/, "")}/.git`;
-  return await isDirectory(dotGit) ? dotGit : absolute;
-}
-
-async function isDirectory(path: string): Promise<boolean> {
-  try {
-    return (await Deno.stat(path)).isDirectory;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return false;
-    throw error;
-  }
+  await runGit(absolute, ["rev-parse", "--git-dir"], [0]);
+  return absolute;
 }
 
 async function resolveRevision(

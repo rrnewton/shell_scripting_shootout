@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { pureInputSchema, purePlanningInput } from "../src/schema.ts";
+import {
+  gitInputSchema,
+  pureInputSchema,
+  purePlanningInput,
+  validateUniqueGitPrs,
+} from "../src/schema.ts";
 
 describe("untrusted input validation", () => {
   test("accepts the versioned pure fixture", async () => {
@@ -50,5 +55,37 @@ describe("untrusted input validation", () => {
         ancestry_edges: [{ before: first.number, after: 999 }],
     });
     expect(() => purePlanningInput(dangling)).toThrow("references an unknown PR");
+  });
+
+  test("rejects duplicate head refs in pure and Git inputs", async () => {
+    const rawPure: unknown = await Bun.file(new URL("fixtures/pure.json", import.meta.url)).json();
+    const pure = pureInputSchema.parse(rawPure);
+    const pureFirst = pure.prs[0];
+    const pureSecond = pure.prs[1];
+    if (pureFirst === undefined || pureSecond === undefined) {
+      throw new Error("fixture must contain two PRs");
+    }
+    expect(() =>
+      purePlanningInput({
+        ...pure,
+        prs: [pureFirst, { ...pureSecond, head_ref: pureFirst.head_ref }, ...pure.prs.slice(2)],
+      })
+    ).toThrow("head_ref values must be unique");
+
+    const rawGit: unknown = await Bun.file(
+      new URL("../../../fixtures/git-input.json", import.meta.url),
+    ).json();
+    const git = gitInputSchema.parse(rawGit);
+    const gitFirst = git.prs[0];
+    const gitSecond = git.prs[1];
+    if (gitFirst === undefined || gitSecond === undefined) {
+      throw new Error("fixture must contain two PRs");
+    }
+    expect(() =>
+      validateUniqueGitPrs({
+        ...git,
+        prs: [gitFirst, { ...gitSecond, head_ref: gitFirst.head_ref }, ...git.prs.slice(2)],
+      })
+    ).toThrow("head_ref values must be unique");
   });
 });

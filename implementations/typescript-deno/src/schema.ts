@@ -339,11 +339,15 @@ function literalOne(value: unknown, path: string): asserts value is 1 {
 }
 
 function validateUniquePrs(
-  prs: readonly { readonly number: PrNumber }[],
+  prs: readonly { readonly number: PrNumber; readonly head_ref: string }[],
 ): void {
   const duplicateNumber = duplicate(prs.map((pr) => pr.number));
   if (duplicateNumber !== undefined) {
     fail("$.prs", `duplicate PR number: ${duplicateNumber}`);
+  }
+  const duplicateHead = duplicate(prs.map((pr) => pr.head_ref));
+  if (duplicateHead !== undefined) {
+    fail("$.prs", "head_ref values must be unique");
   }
 }
 

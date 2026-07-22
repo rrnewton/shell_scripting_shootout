@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { analyzeGit, GitCommandError, runGit } from "../src/git.ts";
@@ -24,7 +24,7 @@ describe("offline Git analysis", () => {
         gitPr(12, "feature/stack", "feature/left", fixture.stack, fixture.left),
       ],
     });
-    const analysis = await analyzeGit(input, join(fixture.directory, ".git"));
+    const analysis = await analyzeGit(input, fixture.directory);
     expect(plain(analysis.nodes.map((node) => [node.number, node.files]))).toEqual([
       [10, ["left.txt", "shared.txt"]],
       [11, ["right.txt", "shared.txt"]],
@@ -48,6 +48,38 @@ describe("offline Git analysis", () => {
     );
     expect(expected.exitCode).toBe(1);
     expect(runGit(gitDirectory, ["not-a-command"], [0])).rejects.toBeInstanceOf(GitCommandError);
+  });
+
+  test("accepts linked worktree roots and bare repositories", async () => {
+    const fixture = await createGitFixture();
+    const linkedDirectory = `${fixture.directory}-linked`;
+    const bareDirectory = `${fixture.directory}-bare`;
+    temporaryDirectories.push(linkedDirectory, bareDirectory);
+    await command([
+      "git",
+      "-C",
+      fixture.directory,
+      "worktree",
+      "add",
+      "-q",
+      "--detach",
+      linkedDirectory,
+      fixture.left,
+    ]);
+    await command(["git", "clone", "-q", "--bare", fixture.directory, bareDirectory]);
+    expect((await stat(join(linkedDirectory, ".git"))).isFile()).toBe(true);
+
+    const input = gitInputSchema.parse({
+      schema_version: 1,
+      repository: "acme/git-layouts",
+      prs: [gitPr(10, "feature/left", "main", fixture.left, fixture.base)],
+    });
+    for (const directory of [linkedDirectory, bareDirectory]) {
+      const analysis = await analyzeGit(input, directory);
+      expect(plain(analysis.nodes.map((node) => node.files))).toEqual([
+        ["left.txt", "shared.txt"],
+      ]);
+    }
   });
 });
 

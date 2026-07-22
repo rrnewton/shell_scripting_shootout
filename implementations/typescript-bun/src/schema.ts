@@ -84,8 +84,7 @@ function duplicate<T>(values: readonly T[]): T | undefined {
 }
 
 export function validatePureReferences(input: PureInput): void {
-  const duplicateNumber = duplicate(input.prs.map((pr) => pr.number));
-  if (duplicateNumber !== undefined) throw new Error(`duplicate PR number: ${duplicateNumber}`);
+  validateUniquePrs(input.prs);
 
   const numbers = new Set(input.prs.map((pr) => pr.number));
   const edgeKeys: string[] = [];
@@ -116,8 +115,17 @@ export function validatePureReferences(input: PureInput): void {
 }
 
 export function validateUniqueGitPrs(input: GitInput): void {
-  const duplicateNumber = duplicate(input.prs.map((pr) => pr.number));
+  validateUniquePrs(input.prs);
+}
+
+function validateUniquePrs(
+  prs: readonly { readonly number: PrNumber; readonly head_ref: string }[],
+): void {
+  const duplicateNumber = duplicate(prs.map((pr) => pr.number));
   if (duplicateNumber !== undefined) throw new Error(`duplicate PR number: ${duplicateNumber}`);
+
+  const duplicateHead = duplicate(prs.map((pr) => pr.head_ref));
+  if (duplicateHead !== undefined) throw new Error("head_ref values must be unique");
 }
 
 export function purePlanningInput(input: PureInput): PlanningInput {
