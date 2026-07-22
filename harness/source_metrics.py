@@ -9,9 +9,23 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CODE_SUFFIXES = {".py", ".rs", ".ts", ".go", ".ml", ".mli", ".rkt", ".d", ".nim", ".scala", ".sc"}
+CODE_SUFFIXES = {
+    ".d",
+    ".go",
+    ".ml",
+    ".mli",
+    ".nim",
+    ".py",
+    ".rkt",
+    ".rs",
+    ".sc",
+    ".scala",
+    ".sh",
+    ".ts",
+}
 MANIFESTS = {
     "Cargo.toml",
+    "deno.json",
     "go.mod",
     "go.sum",
     "package.json",
@@ -24,11 +38,14 @@ MANIFESTS = {
     "dub.sdl",
     "build.sbt",
     "project.scala",
+    "requirements-dev.txt",
+    "tsconfig.json",
 }
 SKIP_PARTS = {
     ".cache",
     ".git",
     ".mypy_cache",
+    ".rdmd-cache",
     ".scala-build",
     ".venv",
     "_build",
@@ -55,10 +72,16 @@ def add(target: dict[str, int], value: dict[str, int]) -> None:
         target[key] = target.get(key, 0) + amount
 
 
-def classify(path: Path) -> str | None:
+def classify(candidate: str, path: Path) -> str | None:
     if any(part in SKIP_PARTS for part in path.parts):
         return None
+    if path.name == "Containerfile":
+        return "container"
+    if candidate == "rust-cargo-script" and path.name == "pr-plan":
+        return "implementation"
     if path.name == "pr-plan":
+        return "launcher"
+    if path.name == "scala-cli-container":
         return "launcher"
     if path.name in MANIFESTS:
         return "manifest"
@@ -80,7 +103,7 @@ def collect() -> dict[str, object]:
         for path in directory.rglob("*"):
             if not path.is_file():
                 continue
-            category = classify(path.relative_to(directory))
+            category = classify(directory.name, path.relative_to(directory))
             if category is None:
                 continue
             add(categories.setdefault(category, {}), line_metrics(path))

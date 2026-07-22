@@ -12,9 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check harness
+        run: |
+          python3 -m pip install mypy==1.18.2
+          python3 -m py_compile harness/*.py harness/tests/*.py
+          python3 -m unittest discover -s harness/tests
+          python3 -m mypy --strict --explicit-package-bases \
+            harness/collect_github.py harness/tests/test_collect_github.py
       - name: Check generated fixtures
         run: |
-          python3 -m py_compile harness/*.py
           python3 harness/update_goldens.py
           git diff --check
           git diff --exit-code -- fixtures/expected

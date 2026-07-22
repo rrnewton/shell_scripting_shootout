@@ -75,6 +75,7 @@ def check_candidate(
     launcher: Path,
     invalid_cases: list[tuple[str, str, Path]],
     fixture_repo: Path,
+    linked_worktree: Path,
 ) -> bool:
     expected_pure = load_json(ROOT / "fixtures" / "expected" / "pure-output.json")
     expected_git = load_json(ROOT / "fixtures" / "expected" / "git-output.json")
@@ -98,6 +99,21 @@ def check_candidate(
     git_process = run(git_args)
     if require_success(name, "git", git_process):
         ok = compare_json(name, "git", git_process.stdout, expected_git) and ok
+    else:
+        ok = False
+
+    worktree_args = [*git_args[:-1], str(linked_worktree)]
+    worktree_process = run(worktree_args)
+    if require_success(name, "git-linked-worktree", worktree_process):
+        ok = (
+            compare_json(
+                name,
+                "git-linked-worktree",
+                worktree_process.stdout,
+                expected_git,
+            )
+            and ok
+        )
     else:
         ok = False
 
@@ -138,6 +154,10 @@ def write_invalid_cases(directory: Path) -> list[tuple[str, str, Path]]:
     invalid_enum["prs"][0]["mergeable"] = "MAYBE"  # type: ignore[index]
     cases.append(("invalid-enum", "pure", invalid_enum))
 
+    invalid_timestamp = copy.deepcopy(pure)
+    invalid_timestamp["prs"][0]["created_at"] = "2026-02-30T25:00:00Z"  # type: ignore[index]
+    cases.append(("invalid-timestamp", "pure", invalid_timestamp))
+
     unknown_field = copy.deepcopy(pure)
     unknown_field["prs"][0]["surprise"] = True  # type: ignore[index]
     cases.append(("unknown-field", "pure", unknown_field))
@@ -145,6 +165,10 @@ def write_invalid_cases(directory: Path) -> list[tuple[str, str, Path]]:
     duplicate_pr = copy.deepcopy(pure)
     duplicate_pr["prs"].append(copy.deepcopy(duplicate_pr["prs"][0]))  # type: ignore[union-attr,index]
     cases.append(("duplicate-pr", "pure", duplicate_pr))
+
+    duplicate_head = copy.deepcopy(pure)
+    duplicate_head["prs"][1]["head_ref"] = duplicate_head["prs"][0]["head_ref"]  # type: ignore[index]
+    cases.append(("duplicate-head-ref", "pure", duplicate_head))
 
     dangling_edge = copy.deepcopy(pure)
     dangling_edge["conflict_edges"][0]["b"] = 9999  # type: ignore[index]
@@ -196,9 +220,30 @@ def main() -> int:
         temporary_path = Path(temporary)
         fixture_repo = temporary_path / "fixture-repo"
         create_fixture(fixture_repo)
+        linked_worktree = temporary_path / "linked-worktree"
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(fixture_repo),
+                "worktree",
+                "add",
+                "--quiet",
+                "--detach",
+                str(linked_worktree),
+                "main",
+            ],
+            check=True,
+        )
         invalid_cases = write_invalid_cases(temporary_path)
         results = [
-            check_candidate(name, launcher.resolve(), invalid_cases, fixture_repo)
+            check_candidate(
+                name,
+                launcher.resolve(),
+                invalid_cases,
+                fixture_repo,
+                linked_worktree,
+            )
             for name, launcher in found
         ]
     return 0 if all(results) else 1

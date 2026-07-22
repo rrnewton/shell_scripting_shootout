@@ -430,12 +430,16 @@ private AnalysisInput decodeDocument(JSONValue document, bool gitMode)
     auto prs = arrayValue(required(root, "prs", "$"), "$.prs");
     result.prs.reserve(prs.length);
     bool[long] numbers;
+    bool[string] headRefs;
     foreach (index, item; prs)
     {
         auto pr = decodePullRequest(item, index, gitMode);
         if (pr.number in numbers)
             inputError(format("$.prs[%s].number", index), "duplicate PR number");
+        if (pr.headRef in headRefs)
+            inputError(format("$.prs[%s].head_ref", index), "duplicate head_ref");
         numbers[pr.number] = true;
+        headRefs[pr.headRef] = true;
         result.prs ~= pr;
     }
 
@@ -1418,6 +1422,10 @@ version (unittest)
                 `"conflict_edges": [{"a": 1, "b": 2, "paths": ["x", "x"]}]`),
             false,
         ), "duplicate conflict paths must be rejected");
+        assert(rejectsInput(
+            validPure.replace(`"head_ref": "two"`, `"head_ref": "one"`),
+            false,
+        ), "duplicate head refs must be rejected");
     }
 
     unittest
