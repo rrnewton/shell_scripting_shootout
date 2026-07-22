@@ -1,6 +1,7 @@
 .git
 .benchmark-cache
 results/local
+implementations/go/.cache
 
 **/.venv
 **/__pycache__

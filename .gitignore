@@ -5,6 +5,7 @@
 # Local benchmark state
 .benchmark-cache/
 results/local/
+implementations/go/.cache/
 
 # Python
 __pycache__/

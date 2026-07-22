@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cache_directory="$directory/.cache"
+
+mkdir -p -- "$cache_directory"
+
+fingerprint="$({
+  go version
+  find "$directory" -maxdepth 1 -type f \
+    \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \) -print0 \
+    | sort -z \
+    | xargs -0 sha256sum
+} | sha256sum | cut -d' ' -f1)"
+binary="$cache_directory/pr-plan-$fingerprint"
+
+if [[ ! -x "$binary" ]]; then
+  temporary="$(mktemp "$cache_directory/.pr-plan.XXXXXX")"
+  trap 'rm -f -- "$temporary"' EXIT
+  (cd -- "$directory" && go build -trimpath -o "$temporary" .)
+  # Concurrent builders produce equivalent files; atomic rename prevents a
+  # reader from ever observing a partial executable.
+  mv -f -- "$temporary" "$binary"
+  trap - EXIT
+fi
+
+exec "$binary" "$@"

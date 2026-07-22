@@ -1,0 +1,16 @@
+FROM docker.io/library/golang:1.26.4-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git python3 time \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY . .
+
+RUN rm -rf implementations/go/.cache \
+    && cd implementations/go \
+    && go test ./... \
+    && cd /work \
+    && python3 harness/conformance.py --candidate go --require go
+
+CMD ["python3", "harness/conformance.py", "--candidate", "go", "--require", "go"]
