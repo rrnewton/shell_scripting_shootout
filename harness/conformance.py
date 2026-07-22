@@ -69,7 +69,7 @@ def require_success(name: str, scenario: str, process: subprocess.CompletedProce
     return False
 
 
-def check_candidate(name: str, launcher: Path, malformed: Path) -> bool:
+def check_candidate(name: str, launcher: Path, malformed: Path, fixture_repo: Path) -> bool:
     expected_pure = load_json(ROOT / "fixtures" / "expected" / "pure-output.json")
     expected_git = load_json(ROOT / "fixtures" / "expected" / "git-output.json")
     ok = True
@@ -87,7 +87,7 @@ def check_candidate(name: str, launcher: Path, malformed: Path) -> bool:
         "--input",
         str(ROOT / "fixtures" / "git-input.json"),
         "--git-dir",
-        str(FIXTURE_REPO),
+        str(fixture_repo),
     ]
     git_process = run(git_args)
     if require_success(name, "git", git_process):
@@ -141,11 +141,16 @@ def main() -> int:
         print("no runnable candidates found", file=sys.stderr)
         return 2
 
-    create_fixture(FIXTURE_REPO)
     with tempfile.TemporaryDirectory(prefix="shootout-invalid-") as temporary:
-        malformed = Path(temporary) / "invalid.json"
+        temporary_path = Path(temporary)
+        fixture_repo = temporary_path / "fixture-repo"
+        create_fixture(fixture_repo)
+        malformed = temporary_path / "invalid.json"
         malformed.write_text('{"schema_version":1,"repository":7,"prs":[]}', encoding="utf-8")
-        results = [check_candidate(name, launcher.resolve(), malformed) for name, launcher in found]
+        results = [
+            check_candidate(name, launcher.resolve(), malformed, fixture_repo)
+            for name, launcher in found
+        ]
     return 0 if all(results) else 1
 
 
