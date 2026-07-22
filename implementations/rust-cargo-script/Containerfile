@@ -1,0 +1,14 @@
+FROM docker.io/library/rust:1.96.0-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git python3 time \
+    && rm -rf /var/lib/apt/lists/*
+RUN rustup toolchain install nightly-2026-06-01 --profile minimal
+
+WORKDIR /work
+COPY . .
+
+RUN python3 harness/conformance.py \
+    --candidate rust-cargo-script --require rust-cargo-script
+
+CMD ["python3", "harness/conformance.py", "--candidate", "rust-cargo-script", "--require", "rust-cargo-script"]

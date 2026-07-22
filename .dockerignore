@@ -2,6 +2,7 @@
 .benchmark-cache
 results/local
 implementations/go/.cache
+implementations/rust-cargo-script/.cache
 
 **/.venv
 **/__pycache__

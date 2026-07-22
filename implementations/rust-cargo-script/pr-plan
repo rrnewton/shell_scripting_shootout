@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source_file="$directory/../rust/pr-plan.rs"
+cache_directory="$directory/.cache"
+mkdir -p -- "$cache_directory"
+
+fingerprint="$({
+  cargo +nightly-2026-06-01 --version
+  sha256sum "$source_file"
+} | sha256sum | cut -d' ' -f1)"
+script="$cache_directory/pr-plan-$fingerprint.rs"
+
+if [[ ! -f "$script" ]]; then
+  temporary="$(mktemp "$cache_directory/.pr-plan.XXXXXX.rs")"
+  trap 'rm -f -- "$temporary"' EXIT
+  {
+    printf '%s\n' '#!/usr/bin/env -S cargo +nightly-2026-06-01 -Zscript'
+    printf '%s\n' '---cargo'
+    printf '%s\n' '[package]'
+    printf '%s\n' 'edition = "2024"'
+    printf '%s\n' '[dependencies]'
+    printf '%s\n' 'clap = { version = "=4.6.4", features = ["derive"] }'
+    printf '%s\n' 'serde = { version = "=1.0.229", features = ["derive"] }'
+    printf '%s\n' 'serde_json = "=1.0.151"'
+    printf '%s\n' '---'
+    sed -n '/^use clap/,$p' "$source_file"
+  } >"$temporary"
+  chmod +x "$temporary"
+  mv -f -- "$temporary" "$script"
+  trap - EXIT
+fi
+
+exec cargo +nightly-2026-06-01 -Zscript "$script" "$@"
