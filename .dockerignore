@@ -1,0 +1,16 @@
+.git
+.benchmark-cache
+results/local
+
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/*.pyc
+
+**/node_modules
+**/target
+**/_build
+**/.bsp
+**/.scala-build
+**/nimcache
