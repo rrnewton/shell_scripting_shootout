@@ -18,10 +18,22 @@
 (define (fail-git message)
   (raise (GitError message (current-continuation-marks))))
 
+;; Racket 7.9 provides environment-variables-copy at runtime, but its Typed
+;; Racket libraries do not give the binding a type.  The component operations
+;; below are typed in every supported release.
+(: copy-environment-variables (-> Environment-Variables Environment-Variables))
+(define (copy-environment-variables source)
+  (define copy (make-environment-variables))
+  (for ([name (in-list (environment-variables-names source))])
+    (define value (environment-variables-ref source name))
+    (when value
+      (environment-variables-set! copy name value)))
+  copy)
+
 (: sanitized-environment (-> Environment-Variables))
 (define (sanitized-environment)
   (define environment
-    (environment-variables-copy (current-environment-variables)))
+    (copy-environment-variables (current-environment-variables)))
   (for ([name (in-list
                '(#"GIT_ALTERNATE_OBJECT_DIRECTORIES"
                  #"GIT_COMMON_DIR"
@@ -178,6 +190,13 @@
   ([pr : PullRequest] [head : ObjectId])
   #:transparent)
 
+(: required-revision (-> (Option GitRevision) PrNumber GitRevision))
+(define (required-revision revision number)
+  (or revision
+      (fail-git
+       (format "internal error: missing Git revisions for PR #~a"
+               (PrNumber-value number)))))
+
 (: analyze-repository (-> AnalysisInput Path-String AnalysisInput))
 (define (analyze-repository input repository-value)
   (define repository (simplify-path (path->complete-path repository-value) #t))
@@ -187,12 +206,11 @@
   (define resolved
     (for/list : (Listof ResolvedPullRequest)
       ([pr (in-list (AnalysisInput-prs input))])
-      (define head-revision (PullRequest-git-head pr))
-      (define base-revision (PullRequest-git-base pr))
-      (unless (and head-revision base-revision)
-        (fail-git
-         (format "internal error: missing Git revisions for PR #~a"
-                 (PrNumber-value (PullRequest-number pr)))))
+      (define number (PullRequest-number pr))
+      (define head-revision
+        (required-revision (PullRequest-git-head pr) number))
+      (define base-revision
+        (required-revision (PullRequest-git-base pr) number))
       (define head (resolve-commit repository head-revision))
       (define base (resolve-commit repository base-revision))
       (ResolvedPullRequest

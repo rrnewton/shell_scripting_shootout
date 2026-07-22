@@ -105,6 +105,24 @@
   void
   (lambda ()
     (run-git git-directory '("init" "--quiet"))
+    (define inherited-path
+      (or (environment-variables-ref (current-environment-variables) #"PATH")
+          #"/usr/bin:/bin"))
+    (define hostile-environment
+      (make-environment-variables
+       #"PATH" inherited-path
+       #"GIT_DIR" #"/definitely/not/a/repository"
+       #"GIT_CONFIG_COUNT" #"invalid"))
+    (parameterize ([current-environment-variables hostile-environment])
+      (check-equal?
+       (CommandResult-status
+        (run-git git-directory '("rev-parse" "--git-dir")))
+       0)
+      (check-equal? (environment-variables-ref hostile-environment #"GIT_DIR")
+                    #"/definitely/not/a/repository")
+      (check-equal?
+       (environment-variables-ref hostile-environment #"GIT_CONFIG_COUNT")
+       #"invalid"))
     (define expected
       (run-git git-directory '("rev-parse" "--verify" "missing")
                #:expected '(0 128)))

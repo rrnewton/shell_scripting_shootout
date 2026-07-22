@@ -127,14 +127,12 @@
 (define (timestamp value path)
   (define text (json-string value path))
   (define matched
-    (regexp-match
-     #px"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
-     text))
-  (unless matched
-    (fail-input path "expected an RFC 3339 timestamp"))
+    (or (regexp-match
+         #px"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+         text)
+        (fail-input path "expected an RFC 3339 timestamp")))
   (define captures : (Listof (Option String))
-    (for/list : (Listof (Option String)) ([item (in-list (cdr matched))])
-      (and (string? item) item)))
+    (cdr matched))
   (define year (matched-integer captures 0))
   (define month (matched-integer captures 1))
   (define day (matched-integer captures 2))
