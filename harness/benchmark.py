@@ -95,6 +95,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def git_commit() -> str:
+    supplied = os.environ.get("SHOOTOUT_GIT_COMMIT")
+    if supplied:
+        return supplied
+    process = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return process.stdout.strip() if process.returncode == 0 else "unavailable"
+
+
 def main() -> int:
     args = parse_args()
     if args.runs < 2:
@@ -110,9 +124,7 @@ def main() -> int:
     result: dict[str, object] = {
         "schema_version": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "git_commit": subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
-        ).stdout.strip(),
+        "git_commit": git_commit(),
         "host": {
             "platform": platform.platform(),
             "python": platform.python_version(),

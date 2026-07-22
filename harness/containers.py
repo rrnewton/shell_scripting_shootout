@@ -54,6 +54,13 @@ def main() -> int:
             found.append((directory.name, containerfile))
     if not found:
         raise RuntimeError("no matching Containerfiles found")
+    git_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
 
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
     bridge_context = bridged_proxy(proxy) if engine == "podman" else contextlib.nullcontext(proxy)
@@ -83,6 +90,8 @@ def main() -> int:
                     engine,
                     "run",
                     "--rm",
+                    "--env",
+                    f"SHOOTOUT_GIT_COMMIT={git_commit}",
                     tag,
                     "python3",
                     "harness/benchmark.py",
