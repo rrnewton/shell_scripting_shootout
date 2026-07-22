@@ -1,0 +1,290 @@
+{
+  "repository": "fixture/git",
+  "nodes": [
+    {
+      "pr": 1,
+      "title": "Left side of conflict",
+      "author": "alice",
+      "head_ref": "feature-one",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "additions": 1,
+      "deletions": 1,
+      "files_count": 1,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 2,
+      "title": "Right side of conflict",
+      "author": "bob",
+      "head_ref": "feature-two",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "REVIEW_REQUIRED",
+      "additions": 1,
+      "deletions": 1,
+      "files_count": 1,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 3,
+      "title": "Explicit stacked change",
+      "author": "carol",
+      "head_ref": "feature-three",
+      "base_ref": "feature-one",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "additions": 1,
+      "deletions": 0,
+      "files_count": 1,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 4,
+      "title": "Draft docs",
+      "author": "unknown",
+      "head_ref": "docs-draft",
+      "base_ref": "main",
+      "draft": true,
+      "mergeable": "UNKNOWN",
+      "review_decision": "NONE",
+      "additions": 1,
+      "deletions": 0,
+      "files_count": 1,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 5,
+      "title": "Conflicts with updated base",
+      "author": "dana",
+      "head_ref": "stale-config",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "CONFLICTING",
+      "review_decision": "CHANGES_REQUESTED",
+      "additions": 1,
+      "deletions": 1,
+      "files_count": 1,
+      "base_conflict_paths": [
+        "base-conflict.txt"
+      ]
+    },
+    {
+      "pr": 6,
+      "title": "Descendant of PR two",
+      "author": "erin",
+      "head_ref": "feature-six",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "additions": 2,
+      "deletions": 1,
+      "files_count": 2,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 7,
+      "title": "Clean overlap left",
+      "author": "frank",
+      "head_ref": "overlap-left",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "REVIEW_REQUIRED",
+      "additions": 1,
+      "deletions": 1,
+      "files_count": 1,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 8,
+      "title": "Clean overlap right",
+      "author": "grace",
+      "head_ref": "overlap-right",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "additions": 1,
+      "deletions": 1,
+      "files_count": 1,
+      "base_conflict_paths": []
+    }
+  ],
+  "conflict_edges": [
+    {
+      "a": 1,
+      "b": 2,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 1,
+      "b": 6,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 3,
+      "b": 6,
+      "paths": [
+        "shared.txt"
+      ]
+    }
+  ],
+  "file_overlap_edges": [
+    {
+      "a": 1,
+      "b": 2,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 1,
+      "b": 6,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 2,
+      "b": 6,
+      "paths": [
+        "shared.txt"
+      ]
+    },
+    {
+      "a": 7,
+      "b": 8,
+      "paths": [
+        "overlap.txt"
+      ]
+    }
+  ],
+  "ordering_edges": [
+    {
+      "before": 1,
+      "after": 3,
+      "reason": "base-ref"
+    },
+    {
+      "before": 2,
+      "after": 6,
+      "reason": "ancestry"
+    }
+  ],
+  "stacks": [
+    [
+      1,
+      3
+    ],
+    [
+      2,
+      6
+    ]
+  ],
+  "suggested_landing_batches": [
+    [
+      1,
+      4,
+      5,
+      7,
+      8
+    ],
+    [
+      2
+    ],
+    [
+      3
+    ],
+    [
+      6
+    ]
+  ],
+  "suggested_rebase_plan": [
+    {
+      "pr": 2,
+      "after": [
+        1
+      ],
+      "reasons": [
+        "pair-conflict"
+      ]
+    },
+    {
+      "pr": 3,
+      "after": [
+        1,
+        2
+      ],
+      "reasons": [
+        "pair-conflict",
+        "stack-dependency"
+      ]
+    },
+    {
+      "pr": 6,
+      "after": [
+        1,
+        2,
+        3
+      ],
+      "reasons": [
+        "pair-conflict",
+        "stack-dependency"
+      ]
+    }
+  ],
+  "ready_landing_batches": [
+    [
+      1,
+      7,
+      8
+    ],
+    [
+      2
+    ],
+    [
+      3
+    ],
+    [
+      6
+    ]
+  ],
+  "ready_now": [
+    1,
+    7,
+    8
+  ],
+  "held_prs": [
+    {
+      "pr": 4,
+      "reasons": [
+        "draft"
+      ]
+    },
+    {
+      "pr": 5,
+      "reasons": [
+        "local-base-conflict",
+        "github-base-conflicting"
+      ]
+    }
+  ],
+  "ordering_cycles": []
+}
