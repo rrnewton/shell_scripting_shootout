@@ -21,7 +21,8 @@ batches are sorted deterministically.
 
 Both modes require `schema_version: 1`, a nonempty `repository`, and strictly
 decoded PR records. Unknown fields and incorrectly typed values are rejected.
-Enums use GitHub-style uppercase strings.
+Enums use GitHub-style uppercase strings. Both PR timestamps must be strict
+RFC 3339 values with a UTC offset and a valid calendar date.
 
 Pure mode takes collected `files` and `base_conflict_paths` on every PR, plus
 top-level `conflict_edges` (`a`, `b`, `paths`) and `ancestry_edges` (`before`,

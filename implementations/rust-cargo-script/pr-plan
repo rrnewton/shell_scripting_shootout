@@ -8,7 +8,8 @@ mkdir -p -- "$cache_directory"
 
 fingerprint="$({
   cargo +nightly-2026-06-01 --version
-  sha256sum "$source_file"
+  sha256sum "$0" | cut -d' ' -f1
+  sha256sum "$source_file" | cut -d' ' -f1
 } | sha256sum | cut -d' ' -f1)"
 script="$cache_directory/pr-plan-$fingerprint.rs"
 
@@ -24,6 +25,14 @@ if [[ ! -f "$script" ]]; then
     printf '%s\n' 'clap = { version = "=4.6.4", features = ["derive"] }'
     printf '%s\n' 'serde = { version = "=1.0.229", features = ["derive"] }'
     printf '%s\n' 'serde_json = "=1.0.151"'
+    printf '%s\n' '[profile.dev]'
+    printf '%s\n' 'opt-level = 3'
+    printf '%s\n' 'debug = false'
+    printf '%s\n' 'debug-assertions = false'
+    printf '%s\n' 'overflow-checks = false'
+    printf '%s\n' 'incremental = false'
+    printf '%s\n' 'codegen-units = 16'
+    printf '%s\n' 'strip = true'
     printf '%s\n' '---'
     sed -n '/^use clap/,$p' "$source_file"
   } >"$temporary"

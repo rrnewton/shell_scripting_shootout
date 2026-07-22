@@ -373,6 +373,78 @@ fn validate_nonempty(field: &str, value: &str) -> Result<()> {
     }
 }
 
+fn validate_timestamp(field: &str, value: &str) -> Result<()> {
+    fn digits(bytes: &[u8]) -> Option<u32> {
+        bytes.iter().try_fold(0_u32, |value, byte| {
+            byte.is_ascii_digit()
+                .then(|| value * 10 + u32::from(byte - b'0'))
+        })
+    }
+
+    let invalid = || fail(format!("{field} must be an RFC 3339 timestamp"));
+    let bytes = value.as_bytes();
+    if bytes.len() < 20
+        || bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || bytes.get(10) != Some(&b'T')
+        || bytes.get(13) != Some(&b':')
+        || bytes.get(16) != Some(&b':')
+    {
+        return Err(invalid());
+    }
+
+    let year = digits(&bytes[0..4]).ok_or_else(&invalid)?;
+    let month = digits(&bytes[5..7]).ok_or_else(&invalid)?;
+    let day = digits(&bytes[8..10]).ok_or_else(&invalid)?;
+    let hour = digits(&bytes[11..13]).ok_or_else(&invalid)?;
+    let minute = digits(&bytes[14..16]).ok_or_else(&invalid)?;
+    let second = digits(&bytes[17..19]).ok_or_else(&invalid)?;
+    let leap_year =
+        year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return Err(invalid()),
+    };
+    if !(1..=days_in_month).contains(&day) || hour > 23 || minute > 59 || second > 60 {
+        return Err(invalid());
+    }
+
+    let mut zone_start = 19;
+    if bytes.get(zone_start) == Some(&b'.') {
+        zone_start += 1;
+        let fraction_start = zone_start;
+        while bytes.get(zone_start).is_some_and(u8::is_ascii_digit) {
+            zone_start += 1;
+        }
+        if zone_start == fraction_start {
+            return Err(invalid());
+        }
+    }
+    match &bytes[zone_start..] {
+        [b'Z'] => Ok(()),
+        [
+            b'+' | b'-',
+            zone_hour_1,
+            zone_hour_2,
+            b':',
+            zone_minute_1,
+            zone_minute_2,
+        ] => {
+            let zone_hour = digits(&[*zone_hour_1, *zone_hour_2]).ok_or_else(&invalid)?;
+            let zone_minute = digits(&[*zone_minute_1, *zone_minute_2]).ok_or_else(&invalid)?;
+            if zone_hour <= 23 && zone_minute <= 59 {
+                Ok(())
+            } else {
+                Err(invalid())
+            }
+        }
+        _ => Err(invalid()),
+    }
+}
+
 fn validate_metadata(
     number: PrNumber,
     title: &str,
@@ -386,11 +458,11 @@ fn validate_metadata(
         ("title", title),
         ("head_ref", head_ref),
         ("base_ref", base_ref),
-        ("created_at", created_at),
-        ("updated_at", updated_at),
     ] {
         validate_nonempty(&format!("PR {number} {field}"), value)?;
     }
+    validate_timestamp(&format!("PR {number} created_at"), created_at)?;
+    validate_timestamp(&format!("PR {number} updated_at"), updated_at)?;
     if let Some(author) = author {
         validate_nonempty(&format!("PR {number} author"), author)?;
     }
@@ -1317,6 +1389,46 @@ mod tests {
     }
 
     #[test]
+    fn validates_rfc3339_timestamps() {
+        for timestamp in [
+            "2025-01-01T00:00:00Z",
+            "2024-02-29T23:59:60Z",
+            "2025-12-31T23:59:59.123456789+09:30",
+            "0000-01-01T00:00:00-23:59",
+        ] {
+            validate_timestamp("created_at", timestamp).unwrap();
+        }
+        for timestamp in [
+            "2025-01-01",
+            "2025-02-29T00:00:00Z",
+            "2025-13-01T00:00:00Z",
+            "2025-01-01t00:00:00Z",
+            "2025-01-01T24:00:00Z",
+            "2025-01-01T00:60:00Z",
+            "2025-01-01T00:00:61Z",
+            "2025-01-01T00:00:00.Z",
+            "2025-01-01T00:00:00+24:00",
+            "2025-01-01T00:00:00",
+            "2025-01-01T00:0/:00Z",
+        ] {
+            assert!(
+                validate_timestamp("created_at", timestamp).is_err(),
+                "accepted {timestamp:?}"
+            );
+        }
+
+        let invalid = pure_json(
+            &pr(1, "one", "main").replace(
+                "\"created_at\": \"2025-01-01T00:00:00Z\"",
+                "\"created_at\": \"2025-02-29T00:00:00Z\"",
+            ),
+            "",
+            "",
+        );
+        assert!(parse_pure(&invalid).is_err());
+    }
+
+    #[test]
     fn plans_empty_and_single_inputs() {
         let empty = build_plan(parse_pure(&pure_json("", "", "")).unwrap()).unwrap();
         assert!(empty.nodes.is_empty());
@@ -1490,14 +1602,14 @@ mod tests {
       "number": 2, "title": "Right", "author": null,
       "head_ref": "right", "base_ref": "base", "draft": false,
       "mergeable": "MERGEABLE", "review_decision": "APPROVED",
-      "created_at": "2025-01-02", "updated_at": "2025-01-02",
+      "created_at": "2025-01-02T00:00:00Z", "updated_at": "2025-01-02T00:00:00Z",
       "additions": 1, "deletions": 1, "git_head": "right", "git_base": "base"
     },
     {
       "number": 1, "title": "Left", "author": "alice",
       "head_ref": "left", "base_ref": "base", "draft": false,
       "mergeable": "MERGEABLE", "review_decision": "APPROVED",
-      "created_at": "2025-01-01", "updated_at": "2025-01-01",
+      "created_at": "2025-01-01T00:00:00Z", "updated_at": "2025-01-01T00:00:00Z",
       "additions": 1, "deletions": 1, "git_head": "left", "git_base": "base"
     }
   ]
