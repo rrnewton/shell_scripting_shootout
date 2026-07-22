@@ -1,7 +1,8 @@
 # Typed Racket candidate
 
-The candidate uses Racket 8.18 and only bundled libraries. The launcher typechecks
-and compiles changed modules with `raco make`, then executes the cached bytecode.
+The candidate uses Racket 8.18 and only bundled libraries. The launcher hashes
+the Racket version and source modules, typechecks and compiles changed content
+with `raco make`, then executes the cached bytecode.
 
 Run the local tests in an environment containing Racket and Git:
 

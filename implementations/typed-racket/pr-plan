@@ -7,22 +7,40 @@ compiled="$root/compiled/main_rkt.zo"
 stamp="$root/compiled/pr-plan-build.stamp"
 lock="$root/.pr-plan-build.lock"
 
-needs_build() {
-  [ ! -f "$compiled" ] || [ ! -f "$stamp" ] && return 0
-  find "$root" -maxdepth 1 -type f -name '*.rkt' -newer "$stamp" -print -quit \
-    | grep -q .
+command -v raco >/dev/null 2>&1 || {
+  echo "pr-plan: error: raco is not installed" >&2
+  exit 127
+}
+command -v racket >/dev/null 2>&1 || {
+  echo "pr-plan: error: racket is not installed" >&2
+  exit 127
 }
 
-while needs_build; do
+source_fingerprint() {
+  {
+    racket --version
+    find "$root" -maxdepth 1 -type f -name '*.rkt' -print0 \
+      | sort -z \
+      | xargs -0 sha256sum
+  } | sha256sum | cut -d' ' -f1
+}
+
+needs_build() {
+  expected=$1
+  if [ ! -f "$compiled" ] || [ ! -f "$stamp" ]; then
+    return 0
+  fi
+  [ "$(cat "$stamp")" != "$expected" ]
+}
+
+fingerprint=$(source_fingerprint)
+while needs_build "$fingerprint"; do
   if mkdir "$lock" 2>/dev/null; then
     trap 'rmdir "$lock" 2>/dev/null || true' 0 1 2 3 15
-    if needs_build; then
-      command -v raco >/dev/null 2>&1 || {
-        echo "pr-plan: error: raco is not installed" >&2
-        exit 127
-      }
+    fingerprint=$(source_fingerprint)
+    if needs_build "$fingerprint"; then
       raco make "$entrypoint"
-      touch "$stamp"
+      printf '%s\n' "$fingerprint" >"$stamp"
     fi
     rmdir "$lock"
     trap - 0 1 2 3 15
@@ -37,6 +55,7 @@ while needs_build; do
       exit 1
     fi
   fi
+  fingerprint=$(source_fingerprint)
 done
 
 exec racket "$entrypoint" "$@"

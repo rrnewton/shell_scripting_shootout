@@ -6,28 +6,46 @@ binary="$root/_build/default/src/main.exe"
 build_stamp="$root/_build/pr-plan-build.stamp"
 build_lock="$root/.pr-plan-build.lock"
 
+if command -v opam >/dev/null 2>&1; then
+  eval "$(opam env --set-switch 2>/dev/null)"
+fi
+command -v dune >/dev/null 2>&1 || {
+  echo "pr-plan: error: dune is not installed" >&2
+  exit 127
+}
+command -v ocamlc >/dev/null 2>&1 || {
+  echo "pr-plan: error: ocamlc is not installed" >&2
+  exit 127
+}
+
+source_fingerprint() {
+  {
+    ocamlc -version
+    dune --version
+    find "$root/src" "$root/test" -type f \
+      \( -name '*.ml' -o -name '*.mli' -o -name 'dune' \) -print0 \
+      | sort -z \
+      | xargs -0 sha256sum
+    sha256sum "$root/dune-project" "$root/pr_plan.opam"
+  } | sha256sum | cut -d' ' -f1
+}
+
 needs_build() {
+  expected=$1
   if [ ! -x "$binary" ] || [ ! -f "$build_stamp" ]; then
     return 0
   fi
-  find "$root/src" "$root/test" -type f \( -name '*.ml' -o -name '*.mli' -o -name 'dune' \) \
-    -newer "$build_stamp" -print -quit | grep -q . && return 0
-  [ "$root/dune-project" -nt "$build_stamp" ] || [ "$root/pr_plan.opam" -nt "$build_stamp" ]
+  [ "$(cat "$build_stamp")" != "$expected" ]
 }
 
-while needs_build; do
+fingerprint=$(source_fingerprint)
+while needs_build "$fingerprint"; do
   if mkdir "$build_lock" 2>/dev/null; then
     trap 'rmdir "$build_lock" 2>/dev/null || true' 0 1 2 3 15
-    if needs_build; then
-      if command -v opam >/dev/null 2>&1; then
-        eval "$(opam env --set-switch 2>/dev/null)"
-      fi
-      command -v dune >/dev/null 2>&1 || {
-        echo "pr-plan: error: dune is not installed" >&2
-        exit 127
-      }
+    fingerprint=$(source_fingerprint)
+    if needs_build "$fingerprint"; then
       dune build --root "$root" --display quiet src/main.exe
-      touch "$build_stamp"
+      printf '%s\n' "$fingerprint" >"$build_stamp"
     fi
     rmdir "$build_lock"
     trap - 0 1 2 3 15
@@ -42,6 +60,7 @@ while needs_build; do
       exit 1
     fi
   fi
+  fingerprint=$(source_fingerprint)
 done
 
 exec "$binary" "$@"

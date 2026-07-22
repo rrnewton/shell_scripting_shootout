@@ -23,6 +23,14 @@ RUN opam install --yes \
     ptime.1.2.0 rresult.0.7.0 yojson.3.0.0
 RUN cd implementations/ocaml \
     && opam exec -- dune build --display quiet src/main.exe \
-    && opam exec -- dune runtest --display quiet
+    && opam exec -- dune runtest --display quiet \
+    && fingerprint="$({ \
+         opam exec -- ocamlc -version; \
+         opam exec -- dune --version; \
+         find src test -type f \( -name '*.ml' -o -name '*.mli' -o -name dune \) -print0 \
+           | sort -z | xargs -0 sha256sum; \
+         sha256sum dune-project pr_plan.opam; \
+       } | sha256sum | cut -d' ' -f1)" \
+    && printf '%s\n' "$fingerprint" > _build/pr-plan-build.stamp
 
 CMD ["python3", "harness/conformance.py", "--candidate", "ocaml", "--require", "ocaml"]
