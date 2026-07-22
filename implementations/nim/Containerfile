@@ -1,0 +1,14 @@
+FROM docker.io/nimlang/nim:2.2.10
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git python3 time \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY . .
+
+RUN rm -rf implementations/nim/.cache \
+    && implementations/nim/test.sh \
+    && python3 harness/conformance.py --candidate nim --require nim
+
+CMD ["python3", "harness/conformance.py", "--candidate", "nim", "--require", "nim"]

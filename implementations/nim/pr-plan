@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cache_directory="$directory/.cache"
+mkdir -p -- "$cache_directory"
+
+fingerprint="$({
+  nim --version
+  find "$directory" -maxdepth 1 -type f -name '*.nim' -print0 \
+    | sort -z \
+    | xargs -0 sha256sum
+} | sha256sum | cut -d' ' -f1)"
+binary="$cache_directory/pr-plan-$fingerprint"
+
+if [[ ! -x "$binary" ]]; then
+  temporary="$(mktemp "$cache_directory/.pr-plan.XXXXXX")"
+  nimcache="$(mktemp -d "$cache_directory/.nimcache.XXXXXX")"
+  trap 'rm -f -- "$temporary"; rm -rf -- "$nimcache"' EXIT
+  (
+    cd -- "$directory"
+    nim c --path:. --nimcache:"$nimcache" -d:release --opt:speed \
+      --hints:off --out:"$temporary" main.nim
+  )
+  mv -f -- "$temporary" "$binary"
+  rm -rf -- "$nimcache"
+  trap - EXIT
+fi
+
+exec "$binary" "$@"
