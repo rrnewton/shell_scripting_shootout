@@ -26,6 +26,7 @@ jobs:
       matrix:
         candidate:
           - python
+          - rust
           - typescript-bun
     steps:
       - uses: actions/checkout@v4
