@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generated fixtures
+        run: |
+          python3 -m py_compile harness/*.py
+          python3 harness/update_goldens.py
+          git diff --check
+          git diff --exit-code -- fixtures/expected
+
+  candidates:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate:
+          - python
+          - typescript-bun
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build candidate image
+        run: >-
+          docker build
+          --tag shell-scripting-shootout-${{ matrix.candidate }}:ci
+          --file implementations/${{ matrix.candidate }}/Containerfile
+          .
+      - name: Run tests and conformance
+        run: docker run --rm shell-scripting-shootout-${{ matrix.candidate }}:ci
