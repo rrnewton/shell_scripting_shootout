@@ -1,0 +1,16 @@
+FROM docker.io/library/rust:1.96.0-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup component add rustfmt clippy
+RUN cargo install rust-script --version 0.36.0 --locked
+
+WORKDIR /work
+COPY . .
+
+RUN rustfmt --check implementations/rust/pr-plan.rs \
+    && implementations/rust/test.sh
+
+CMD ["python3", "harness/conformance.py", "--candidate", "rust", "--require", "rust"]
