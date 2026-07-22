@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pr-plan-python"
+version = "0.1.0"
+description = "Strict Python candidate for the shell scripting shootout"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["mypy==1.18.2"]
+
+[project.scripts]
+pr-plan = "pr_plan.cli:main"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["pr_plan", "tests"]
+
+[tool.unittest]
+start-directory = "tests"
+
