@@ -34,6 +34,7 @@ jobs:
           - rust-cargo-script
           - typed-racket
           - typescript-bun
+          - typescript-deno
     steps:
       - uses: actions/checkout@v4
       - name: Build candidate image

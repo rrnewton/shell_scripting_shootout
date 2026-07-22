@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "useUnknownInCatchVariables": true,
+    "verbatimModuleSyntax": true
+  },
+  "nodeModulesDir": "none",
+  "tasks": {
+    "cache": "deno cache src/cli.ts",
+    "typecheck": "deno check src/cli.ts test",
+    "test": "deno test --allow-read --allow-write --allow-run=git,deno test",
+    "check": "deno fmt --check && deno lint && deno task typecheck && deno task test"
+  }
+}

@@ -1,0 +1,19 @@
+FROM docker.io/denoland/deno:debian-2.9.3
+
+USER root
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git python3 time \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DENO_DIR=/deno-cache \
+    DENO_NO_UPDATE_CHECK=1
+WORKDIR /work
+COPY . .
+
+RUN cd implementations/typescript-deno \
+    && deno task cache \
+    && deno task check \
+    && cd /work \
+    && python3 harness/conformance.py --candidate typescript-deno --require typescript-deno
+
+CMD ["python3", "harness/conformance.py", "--candidate", "typescript-deno", "--require", "typescript-deno"]

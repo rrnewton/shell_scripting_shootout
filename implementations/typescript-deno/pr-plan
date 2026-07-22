@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n "${DENO_BIN:-}" ]]; then
+  deno_bin="$DENO_BIN"
+elif command -v deno >/dev/null 2>&1; then
+  deno_bin="$(command -v deno)"
+elif [[ -x "$HOME/.deno/bin/deno" ]]; then
+  deno_bin="$HOME/.deno/bin/deno"
+else
+  printf '%s\n' 'error: Deno is not installed or discoverable via DENO_BIN, PATH, or ~/.deno/bin/deno' >&2
+  exit 127
+fi
+
+permissions=(--allow-read)
+if [[ "${1:-}" == "git" ]]; then
+  permissions+=(--allow-run=git)
+fi
+
+export DENO_NO_UPDATE_CHECK=1
+exec "$deno_bin" run --cached-only --no-prompt "${permissions[@]}" \
+  "$(dirname "${BASH_SOURCE[0]}")/src/cli.ts" "$@"
