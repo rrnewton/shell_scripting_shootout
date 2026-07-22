@@ -126,10 +126,23 @@ class CollectGithubTest(unittest.TestCase):
         )
 
     def test_rejects_malformed_gh_output_before_fetch(self) -> None:
-        self.gh_output.write_text('{"number": 7}', encoding="utf-8")
-        with patch.dict(os.environ, self.environment(), clear=False):
-            with self.assertRaisesRegex(CollectionError, "expected an array"):
-                collect("owner/project", self.local)
+        malformed: list[tuple[str, object, str]] = [
+            ("root", {"number": 7}, "expected an array"),
+            ("author", [{**self.gh_pr(), "author": "alice"}], "expected an object"),
+            ("enum", [{**self.gh_pr(), "mergeable": "MAYBE"}], "expected one of"),
+            (
+                "timestamp",
+                [{**self.gh_pr(), "createdAt": "2026-07-20 01:02:03Z"}],
+                "RFC 3339",
+            ),
+            ("oid", [{**self.gh_pr(), "headRefOid": "abc123"}], "Git OID"),
+        ]
+        for label, value, message in malformed:
+            with self.subTest(label=label):
+                self.gh_output.write_text(json.dumps(value), encoding="utf-8")
+                with patch.dict(os.environ, self.environment(), clear=False):
+                    with self.assertRaisesRegex(CollectionError, message):
+                        collect("owner/project", self.local)
         result = subprocess.run(
             ["git", "show-ref", "--verify", "--quiet", "refs/pr-plan/head/7"],
             cwd=self.local,

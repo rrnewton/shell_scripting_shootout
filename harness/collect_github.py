@@ -45,6 +45,9 @@ _REVIEW_DECISIONS = frozenset(
     {"APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""}
 )
 _OID_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+_RFC3339_RE = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\Z"
+)
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -127,6 +130,8 @@ def _boolean(value: object, path: str) -> bool:
 
 def _timestamp(value: object, path: str) -> str:
     timestamp = _string(value, path)
+    if _RFC3339_RE.fullmatch(timestamp) is None:
+        _fail(path, "expected an RFC 3339 timestamp")
     try:
         parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
     except ValueError:
