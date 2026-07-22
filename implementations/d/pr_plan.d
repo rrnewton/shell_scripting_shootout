@@ -7,10 +7,10 @@ import std.exception : enforce;
 import std.file : readText;
 import std.format : format;
 import std.json : JSONException, JSONType, JSONValue, parseJSON;
-import std.process : Config, Pid, spawnProcess, wait;
+import std.process : Config, Pid, environment, spawnProcess, wait;
 import std.range : chunks;
 import std.stdio : File, stdin, stderr, stdout;
-import std.string : chomp, join, split, strip;
+import std.string : chomp, join, replace, split, strip;
 
 enum Mergeability
 {
@@ -202,14 +202,108 @@ private bool boolValue(JSONValue value, string path)
     inputError(path, "expected a boolean");
 }
 
+private int decimalAt(string value, size_t start, size_t count)
+{
+    int result;
+    foreach (index; start .. start + count)
+    {
+        auto character = value[index];
+        if (character < '0' || character > '9')
+            return -1;
+        result = result * 10 + character - '0';
+    }
+    return result;
+}
+
+private bool leapYear(int year)
+{
+    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+private bool validTimestamp(string value)
+{
+    if (value.length < 20 || value[4] != '-' || value[7] != '-' ||
+        value[10] != 'T' || value[13] != ':' || value[16] != ':')
+        return false;
+
+    auto year = decimalAt(value, 0, 4);
+    auto month = decimalAt(value, 5, 2);
+    auto day = decimalAt(value, 8, 2);
+    auto hour = decimalAt(value, 11, 2);
+    auto minute = decimalAt(value, 14, 2);
+    auto second = decimalAt(value, 17, 2);
+    if (year < 0 || month < 1 || month > 12 || hour < 0 || hour > 23 ||
+        minute < 0 || minute > 59 || second < 0 || second > 60)
+        return false;
+
+    int[12] days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (leapYear(year))
+        days[1] = 29;
+    if (day < 1 || day > days[month - 1])
+        return false;
+
+    size_t index = 19;
+    if (index < value.length && value[index] == '.')
+    {
+        index++;
+        auto fractionStart = index;
+        while (index < value.length && value[index] >= '0' && value[index] <= '9')
+            index++;
+        if (index == fractionStart)
+            return false;
+    }
+    if (index + 1 == value.length && value[index] == 'Z')
+        return true;
+    if (index + 6 != value.length || (value[index] != '+' && value[index] != '-') ||
+        value[index + 3] != ':')
+        return false;
+    auto offsetHour = decimalAt(value, index + 1, 2);
+    auto offsetMinute = decimalAt(value, index + 4, 2);
+    return offsetHour >= 0 && offsetHour <= 23 &&
+        offsetMinute >= 0 && offsetMinute <= 59;
+}
+
+private string timestampValue(JSONValue value, string path)
+{
+    auto result = stringValue(value, path);
+    if (!validTimestamp(result))
+        inputError(path, "expected an RFC 3339 timestamp");
+    return result;
+}
+
+private string validateRevision(string value, string path)
+{
+    if (value.length == 0)
+        inputError(path, "must not be empty");
+    if (value[0] == '-')
+        inputError(path, "revision must not start with '-'");
+    foreach (character; value)
+        if (character < 0x20 || character == 0x7f)
+            inputError(path, "revision must not contain control characters");
+    return value;
+}
+
+private string revisionValue(JSONValue value, string path)
+{
+    return validateRevision(stringValue(value, path), path);
+}
+
 private string[] stringArrayValue(JSONValue value, string path)
 {
     auto values = arrayValue(value, path);
     string[] result;
     result.reserve(values.length);
+    bool[string] seen;
     foreach (index, item; values)
-        result ~= stringValue(item, format("%s[%s]", path, index));
-    return sortedUnique(result);
+    {
+        auto decoded = stringValue(item, format("%s[%s]", path, index));
+        if (decoded in seen)
+            inputError(path, "paths must be unique");
+        seen[decoded] = true;
+        result ~= decoded;
+    }
+    sort(result);
+    return result;
 }
 
 private Mergeability mergeabilityValue(JSONValue value, string path)
@@ -274,14 +368,14 @@ private PullRequest decodePullRequest(JSONValue value, size_t index, bool gitMod
     pr.draft = boolValue(required(object, "draft", path), path ~ ".draft");
     pr.mergeability = mergeabilityValue(required(object, "mergeable", path), path ~ ".mergeable");
     pr.reviewDecision = reviewDecisionValue(required(object, "review_decision", path), path ~ ".review_decision");
-    pr.createdAt = stringValue(required(object, "created_at", path), path ~ ".created_at");
-    pr.updatedAt = stringValue(required(object, "updated_at", path), path ~ ".updated_at");
+    pr.createdAt = timestampValue(required(object, "created_at", path), path ~ ".created_at");
+    pr.updatedAt = timestampValue(required(object, "updated_at", path), path ~ ".updated_at");
     pr.additions = integerValue(required(object, "additions", path), path ~ ".additions", 0);
     pr.deletions = integerValue(required(object, "deletions", path), path ~ ".deletions", 0);
     if (gitMode)
     {
-        pr.gitHead = stringValue(required(object, "git_head", path), path ~ ".git_head");
-        pr.gitBase = stringValue(required(object, "git_base", path), path ~ ".git_base");
+        pr.gitHead = revisionValue(required(object, "git_head", path), path ~ ".git_head");
+        pr.gitBase = revisionValue(required(object, "git_base", path), path ~ ".git_base");
     }
     else
     {
@@ -444,6 +538,28 @@ struct CommandResult
     string error;
 }
 
+private string[string] gitEnvironment()
+{
+    auto result = environment.toAA();
+    foreach (name; [
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_COMMON_DIR",
+        "GIT_CONFIG_COUNT",
+        "GIT_CONFIG_PARAMETERS",
+        "GIT_DIR",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_WORK_TREE",
+    ])
+        result.remove(name);
+    result["GIT_CONFIG_NOSYSTEM"] = "1";
+    result["GIT_CONFIG_GLOBAL"] = "/dev/null";
+    result["GIT_OPTIONAL_LOCKS"] = "0";
+    result["GIT_TERMINAL_PROMPT"] = "0";
+    result["LC_ALL"] = "C";
+    return result;
+}
+
 CommandResult runGit(string repository, const string[] arguments, const int[] allowedStatuses = [0])
 {
     string[] command = ["git", "-C", repository] ~ arguments;
@@ -458,8 +574,8 @@ CommandResult runGit(string repository, const string[] arguments, const int[] al
     int status;
     try
     {
-        auto config = Config.retainStdout | Config.retainStderr;
-        Pid child = spawnProcess(command, stdin, outputFile, errorFile, null, config);
+        auto config = Config.retainStdout | Config.retainStderr | Config.newEnv;
+        Pid child = spawnProcess(command, stdin, outputFile, errorFile, gitEnvironment(), config);
         status = wait(child);
     }
     catch (Exception error)
@@ -533,6 +649,13 @@ private bool isAncestor(string repository, string before, string after)
 
 AnalysisInput analyzeRepository(AnalysisInput input, string repository)
 {
+    foreach (index, ref pr; input.prs)
+    {
+        validateRevision(pr.gitHead, format("$.prs[%s].git_head", index));
+        validateRevision(pr.gitBase, format("$.prs[%s].git_base", index));
+    }
+    runGit(repository, ["rev-parse", "--git-dir"]);
+
     AnalysisInput result;
     result.repository = input.repository;
     string[long] revisions;
@@ -1177,6 +1300,15 @@ int run(string[] arguments)
 
 version (unittest)
 {
+    private bool rejectsInput(string source, bool gitMode)
+    {
+        try
+            parseInput(source, gitMode);
+        catch (InputException)
+            return true;
+        return false;
+    }
+
     unittest
     {
         auto source = q{
@@ -1189,7 +1321,7 @@ version (unittest)
               "head_ref": "one", "base_ref": "main", "draft": false,
               "mergeable": "MERGEABLE", "review_decision": "APPROVED",
               "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-02T00:00:00Z",
-              "additions": 1, "deletions": 0, "files": ["z", "a", "a"],
+              "additions": 1, "deletions": 0, "files": ["z", "a"],
               "base_conflict_paths": []
             },
             {
@@ -1232,21 +1364,108 @@ version (unittest)
 
     unittest
     {
-        import std.file : mkdirRecurse, remove, tempDir, write;
+        auto validPure = q{
+        {
+          "schema_version": 1,
+          "repository": "test/validation",
+          "prs": [{
+            "number": 1, "title": "One", "author": null,
+            "head_ref": "one", "base_ref": "main", "draft": false,
+            "mergeable": "MERGEABLE", "review_decision": "APPROVED",
+            "created_at": "2024-02-29T23:59:60.123+23:59",
+            "updated_at": "2024-03-01T00:00:00Z",
+            "additions": 1, "deletions": 0,
+            "files": ["a"], "base_conflict_paths": ["b"]
+          }, {
+            "number": 2, "title": "Two", "author": null,
+            "head_ref": "two", "base_ref": "main", "draft": false,
+            "mergeable": "MERGEABLE", "review_decision": "APPROVED",
+            "created_at": "2024-03-01T00:00:00Z",
+            "updated_at": "2024-03-01T00:00:00Z",
+            "additions": 0, "deletions": 0,
+            "files": ["d"], "base_conflict_paths": []
+          }],
+          "conflict_edges": [],
+          "ancestry_edges": []
+        }
+        };
+        parseInput(validPure, false);
+
+        foreach (invalid; [
+            "2023-02-29T23:59:59Z",
+            "2024-13-01T00:00:00Z",
+            "2024-02-29 23:59:59Z",
+            "2024-02-29T23:59:59",
+            "2024-02-29T23:59:59.Z",
+            "2024-02-29T23:59:59+24:00",
+            "2024-02-29T23:59:59Zjunk",
+        ])
+        {
+            auto source = validPure.replace("2024-02-29T23:59:60.123+23:59", invalid);
+            assert(rejectsInput(source, false), "invalid RFC 3339 timestamp was accepted: " ~ invalid);
+        }
+
+        assert(rejectsInput(
+            validPure.replace(`"files": ["a"]`, `"files": ["a", "a"]`),
+            false,
+        ), "duplicate files must be rejected");
+        assert(rejectsInput(
+            validPure.replace(`"base_conflict_paths": ["b"]`, `"base_conflict_paths": ["b", "b"]`),
+            false,
+        ), "duplicate base-conflict paths must be rejected");
+        assert(rejectsInput(
+            validPure.replace(`"conflict_edges": []`,
+                `"conflict_edges": [{"a": 1, "b": 2, "paths": ["x", "x"]}]`),
+            false,
+        ), "duplicate conflict paths must be rejected");
+    }
+
+    unittest
+    {
+        auto validGit = q{
+        {
+          "schema_version": 1,
+          "repository": "test/git-validation",
+          "prs": [{
+            "number": 1, "title": "One", "author": null,
+            "head_ref": "one", "base_ref": "main", "draft": false,
+            "mergeable": "MERGEABLE", "review_decision": "APPROVED",
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "additions": 1, "deletions": 0,
+            "git_head": "main", "git_base": "main"
+          }]
+        }
+        };
+        assert(rejectsInput(validGit.replace(`"git_head": "main"`, `"git_head": "--help"`), true),
+            "option-like Git revisions must be rejected");
+        assert(rejectsInput(validGit.replace(`"git_base": "main"`, `"git_base": "main\nother"`), true),
+            "Git revisions containing control characters must be rejected");
+
+        auto input = parseInput(validGit, true);
+        input.prs[0].gitHead = "--help";
+        bool rejectedBeforeGit;
+        try
+            analyzeRepository(input, "/definitely/not/a/repository");
+        catch (InputException)
+            rejectedBeforeGit = true;
+        assert(rejectedBeforeGit, "unsafe revisions must be rejected before repository access");
+    }
+
+    unittest
+    {
+        import std.file : mkdirRecurse, rmdirRecurse, tempDir, write;
         import std.path : buildPath;
         import std.process : thisProcessID;
 
         auto directory = buildPath(tempDir(), "pr-plan-d-test-" ~ thisProcessID.to!string);
         mkdirRecurse(directory);
+        scope (exit)
+            rmdirRecurse(directory);
         auto left = buildPath(directory, "left");
         auto right = buildPath(directory, "right");
         write(left, "left\n");
         write(right, "right\n");
-        scope (exit)
-        {
-            remove(left);
-            remove(right);
-        }
         auto difference = runGit(".", ["diff", "--quiet", "--no-index", left, right], [0, 1]);
         assert(difference.status == 1);
         bool failed;
@@ -1255,6 +1474,28 @@ version (unittest)
         catch (GitException)
             failed = true;
         assert(failed, "unexpected Git status must fail");
+
+        auto redirect = buildPath(directory, "redirect");
+        mkdirRecurse(redirect);
+        runGit(redirect, ["init", "--quiet"]);
+        auto inheritedGitDir = environment.get("GIT_DIR");
+        scope (exit)
+            environment["GIT_DIR"] = inheritedGitDir;
+        environment["GIT_DIR"] = buildPath(redirect, ".git");
+
+        auto repository = buildPath(directory, "repository");
+        mkdirRecurse(repository);
+        bool invalidRepositoryRejected;
+        try
+            analyzeRepository(AnalysisInput("test/empty", [], [], []), repository);
+        catch (GitException)
+            invalidRepositoryRejected = true;
+        assert(invalidRepositoryRejected,
+            "empty Git input must validate --git-dir independently of inherited GIT_DIR");
+
+        runGit(repository, ["init", "--quiet"]);
+        auto analyzed = analyzeRepository(AnalysisInput("test/empty", [], [], []), repository);
+        assert(analyzed.prs.length == 0, "empty input must work with a valid repository");
     }
 }
 else
