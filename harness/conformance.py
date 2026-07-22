@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import difflib
 import json
 import subprocess
@@ -69,7 +70,12 @@ def require_success(name: str, scenario: str, process: subprocess.CompletedProce
     return False
 
 
-def check_candidate(name: str, launcher: Path, malformed: Path, fixture_repo: Path) -> bool:
+def check_candidate(
+    name: str,
+    launcher: Path,
+    invalid_cases: list[tuple[str, str, Path]],
+    fixture_repo: Path,
+) -> bool:
     expected_pure = load_json(ROOT / "fixtures" / "expected" / "pure-output.json")
     expected_git = load_json(ROOT / "fixtures" / "expected" / "git-output.json")
     ok = True
@@ -102,13 +108,58 @@ def check_candidate(name: str, launcher: Path, malformed: Path, fixture_repo: Pa
     else:
         print(f"PASS {name} human")
 
-    invalid = run([str(launcher), "pure", "--input", str(malformed)])
-    if invalid.returncode == 0:
-        print(f"FAIL {name} malformed: accepted invalid input", file=sys.stderr)
-        ok = False
-    else:
-        print(f"PASS {name} malformed")
+    for label, mode, invalid_path in invalid_cases:
+        invalid_args = [str(launcher), mode, "--input", str(invalid_path)]
+        if mode == "git":
+            invalid_args.extend(["--git-dir", str(fixture_repo)])
+        invalid = run(invalid_args)
+        if invalid.returncode == 0:
+            print(f"FAIL {name} invalid/{label}: accepted invalid input", file=sys.stderr)
+            ok = False
+        else:
+            print(f"PASS {name} invalid/{label}")
     return ok
+
+
+def write_invalid_cases(directory: Path) -> list[tuple[str, str, Path]]:
+    pure = load_json(ROOT / "fixtures" / "pure-input.json")
+    git_input = load_json(ROOT / "fixtures" / "git-input.json")
+    assert isinstance(pure, dict) and isinstance(git_input, dict)
+    cases: list[tuple[str, str, object]] = []
+
+    wrong_root = {"schema_version": 1, "repository": 7, "prs": []}
+    cases.append(("wrong-root-type", "pure", wrong_root))
+
+    wrong_number = copy.deepcopy(pure)
+    wrong_number["prs"][0]["number"] = "1"  # type: ignore[index]
+    cases.append(("wrong-pr-number", "pure", wrong_number))
+
+    invalid_enum = copy.deepcopy(pure)
+    invalid_enum["prs"][0]["mergeable"] = "MAYBE"  # type: ignore[index]
+    cases.append(("invalid-enum", "pure", invalid_enum))
+
+    unknown_field = copy.deepcopy(pure)
+    unknown_field["prs"][0]["surprise"] = True  # type: ignore[index]
+    cases.append(("unknown-field", "pure", unknown_field))
+
+    duplicate_pr = copy.deepcopy(pure)
+    duplicate_pr["prs"].append(copy.deepcopy(duplicate_pr["prs"][0]))  # type: ignore[union-attr,index]
+    cases.append(("duplicate-pr", "pure", duplicate_pr))
+
+    dangling_edge = copy.deepcopy(pure)
+    dangling_edge["conflict_edges"][0]["b"] = 9999  # type: ignore[index]
+    cases.append(("dangling-edge", "pure", dangling_edge))
+
+    unsafe_revision = copy.deepcopy(git_input)
+    unsafe_revision["prs"][0]["git_head"] = "--help"  # type: ignore[index]
+    cases.append(("unsafe-git-revision", "git", unsafe_revision))
+
+    written: list[tuple[str, str, Path]] = []
+    for label, mode, value in cases:
+        path = directory / f"{label}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        written.append((label, mode, path))
+    return written
 
 
 def parse_args() -> argparse.Namespace:
@@ -145,10 +196,9 @@ def main() -> int:
         temporary_path = Path(temporary)
         fixture_repo = temporary_path / "fixture-repo"
         create_fixture(fixture_repo)
-        malformed = temporary_path / "invalid.json"
-        malformed.write_text('{"schema_version":1,"repository":7,"prs":[]}', encoding="utf-8")
+        invalid_cases = write_invalid_cases(temporary_path)
         results = [
-            check_candidate(name, launcher.resolve(), malformed, fixture_repo)
+            check_candidate(name, launcher.resolve(), invalid_cases, fixture_repo)
             for name, launcher in found
         ]
     return 0 if all(results) else 1
