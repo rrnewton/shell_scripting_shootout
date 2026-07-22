@@ -1,0 +1,30 @@
+# Editor and operating-system files
+.DS_Store
+*~
+
+# Local benchmark state
+.benchmark-cache/
+results/local/
+
+# Python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.venv/
+
+# Rust and general Cargo-based tools
+target/
+
+# JavaScript and TypeScript
+node_modules/
+
+# OCaml
+_build/
+
+# Scala
+.bsp/
+.scala-build/
+
+# Nim
+nimcache/
