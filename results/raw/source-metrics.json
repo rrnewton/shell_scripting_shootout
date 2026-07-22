@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "candidates": {
+    "d": {
+      "implementation": {
+        "files": 1,
+        "lines": 1517,
+        "nonblank_lines": 1414,
+        "bytes": 49251
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 7,
+        "nonblank_lines": 6,
+        "bytes": 238
+      },
+      "tests": {
+        "files": 1,
+        "lines": 9,
+        "nonblank_lines": 7,
+        "bytes": 316
+      },
+      "container": {
+        "files": 1,
+        "lines": 29,
+        "nonblank_lines": 23,
+        "bytes": 1153
+      }
+    },
+    "go": {
+      "manifest": {
+        "files": 1,
+        "lines": 5,
+        "nonblank_lines": 3,
+        "bytes": 45
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 28,
+        "nonblank_lines": 23,
+        "bytes": 822
+      },
+      "implementation": {
+        "files": 6,
+        "lines": 1591,
+        "nonblank_lines": 1502,
+        "bytes": 45347
+      },
+      "tests": {
+        "files": 4,
+        "lines": 341,
+        "nonblank_lines": 319,
+        "bytes": 11279
+      },
+      "container": {
+        "files": 1,
+        "lines": 16,
+        "nonblank_lines": 12,
+        "bytes": 529
+      }
+    },
+    "nim": {
+      "implementation": {
+        "files": 6,
+        "lines": 1214,
+        "nonblank_lines": 1084,
+        "bytes": 42070
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 30,
+        "nonblank_lines": 26,
+        "bytes": 839
+      },
+      "tests": {
+        "files": 2,
+        "lines": 158,
+        "nonblank_lines": 140,
+        "bytes": 6004
+      },
+      "container": {
+        "files": 1,
+        "lines": 14,
+        "nonblank_lines": 10,
+        "bytes": 487
+      }
+    },
+    "ocaml": {
+      "manifest": {
+        "files": 4,
+        "lines": 36,
+        "nonblank_lines": 32,
+        "bytes": 718
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 66,
+        "nonblank_lines": 60,
+        "bytes": 1729
+      },
+      "container": {
+        "files": 1,
+        "lines": 36,
+        "nonblank_lines": 31,
+        "bytes": 1222
+      },
+      "implementation": {
+        "files": 6,
+        "lines": 1300,
+        "nonblank_lines": 1199,
+        "bytes": 41900
+      },
+      "tests": {
+        "files": 1,
+        "lines": 117,
+        "nonblank_lines": 111,
+        "bytes": 4136
+      }
+    },
+    "python": {
+      "manifest": {
+        "files": 2,
+        "lines": 27,
+        "nonblank_lines": 20,
+        "bytes": 498
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 4,
+        "nonblank_lines": 3,
+        "bytes": 78
+      },
+      "container": {
+        "files": 1,
+        "lines": 16,
+        "nonblank_lines": 12,
+        "bytes": 580
+      },
+      "implementation": {
+        "files": 8,
+        "lines": 1037,
+        "nonblank_lines": 892,
+        "bytes": 35301
+      },
+      "tests": {
+        "files": 6,
+        "lines": 398,
+        "nonblank_lines": 340,
+        "bytes": 14361
+      }
+    },
+    "rust": {
+      "implementation": {
+        "files": 1,
+        "lines": 1627,
+        "nonblank_lines": 1526,
+        "bytes": 51690
+      },
+      "tests": {
+        "files": 1,
+        "lines": 3,
+        "nonblank_lines": 3,
+        "bytes": 71
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 3,
+        "nonblank_lines": 3,
+        "bytes": 69
+      },
+      "container": {
+        "files": 1,
+        "lines": 16,
+        "nonblank_lines": 11,
+        "bytes": 549
+      }
+    },
+    "rust-cargo-script": {
+      "implementation": {
+        "files": 1,
+        "lines": 44,
+        "nonblank_lines": 40,
+        "bytes": 1477
+      },
+      "container": {
+        "files": 1,
+        "lines": 14,
+        "nonblank_lines": 10,
+        "bytes": 553
+      }
+    },
+    "scala": {
+      "implementation": {
+        "files": 6,
+        "lines": 833,
+        "nonblank_lines": 764,
+        "bytes": 36550
+      },
+      "launcher": {
+        "files": 2,
+        "lines": 11,
+        "nonblank_lines": 10,
+        "bytes": 372
+      },
+      "tests": {
+        "files": 1,
+        "lines": 101,
+        "nonblank_lines": 91,
+        "bytes": 4491
+      },
+      "container": {
+        "files": 1,
+        "lines": 34,
+        "nonblank_lines": 28,
+        "bytes": 1582
+      }
+    },
+    "typed-racket": {
+      "implementation": {
+        "files": 6,
+        "lines": 1437,
+        "nonblank_lines": 1320,
+        "bytes": 57830
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 61,
+        "nonblank_lines": 55,
+        "bytes": 1451
+      },
+      "tests": {
+        "files": 1,
+        "lines": 134,
+        "nonblank_lines": 121,
+        "bytes": 4469
+      },
+      "container": {
+        "files": 1,
+        "lines": 21,
+        "nonblank_lines": 17,
+        "bytes": 786
+      }
+    },
+    "typescript-bun": {
+      "manifest": {
+        "files": 3,
+        "lines": 82,
+        "nonblank_lines": 70,
+        "bytes": 4653
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 15,
+        "nonblank_lines": 13,
+        "bytes": 429
+      },
+      "container": {
+        "files": 1,
+        "lines": 15,
+        "nonblank_lines": 11,
+        "bytes": 474
+      },
+      "implementation": {
+        "files": 6,
+        "lines": 947,
+        "nonblank_lines": 859,
+        "bytes": 31637
+      },
+      "tests": {
+        "files": 5,
+        "lines": 416,
+        "nonblank_lines": 378,
+        "bytes": 16007
+      }
+    },
+    "typescript-deno": {
+      "manifest": {
+        "files": 1,
+        "lines": 20,
+        "nonblank_lines": 20,
+        "bytes": 648
+      },
+      "launcher": {
+        "files": 1,
+        "lines": 22,
+        "nonblank_lines": 19,
+        "bytes": 622
+      },
+      "container": {
+        "files": 1,
+        "lines": 19,
+        "nonblank_lines": 15,
+        "bytes": 642
+      },
+      "implementation": {
+        "files": 6,
+        "lines": 1366,
+        "nonblank_lines": 1256,
+        "bytes": 40287
+      },
+      "tests": {
+        "files": 5,
+        "lines": 476,
+        "nonblank_lines": 445,
+        "bytes": 14506
+      }
+    }
+  }
+}

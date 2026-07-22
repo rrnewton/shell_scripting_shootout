@@ -12,11 +12,19 @@ The main question is:
 
 ## Status
 
-The benchmark design is being frozen before implementations begin. See
-[docs/benchmark-design.md](docs/benchmark-design.md) for the proposed workload,
-measurement protocol, scoring, and initial competitor roster. See
-[docs/rust-runners.md](docs/rust-runners.md) for the initial Rust source-runner
-decision.
+The shootout is complete. The [final report](results/reports/REPORT.md) contains
+the measurements, qualitative review, weighted score, limitations, and
+recommendation. Machine-readable samples and supporting evidence are in
+[`results/raw`](results/raw).
+
+**Verdict:** Rust with `rust-script` is the overall winner. TypeScript with
+Deno is the best concise non-Rust option. Cargo's official `-Zscript` is the
+preferred long-term architecture but is still nightly-only and adds about
+80 ms/32 MiB per warm invocation in the tested release.
+
+See [docs/benchmark-design.md](docs/benchmark-design.md) for the frozen workload,
+[docs/rust-runners.md](docs/rust-runners.md) for the Rust runner analysis, and
+[docs/research.md](docs/research.md) for prior art and additional candidates.
 
 Candidate toolchains are reproducible through the Podman/Docker workflow in
 [containers.md](containers.md).
@@ -37,11 +45,11 @@ Implementations may use normal, idiomatic libraries. Dependency count,
 installation cost, lockfile quality, and offline reproducibility are measured
 rather than artificially requiring standard-library-only solutions.
 
-## Initial Roster
+## Completed Roster
 
 - Rust using `rust-script` (plus a Cargo `-Zscript` runner experiment)
 - Strictly typed Python using `mypy --strict`
-- TypeScript 7 using Bun and its native type checker
+- TypeScript using Bun and Deno
 - OCaml using Bos, Fpath, Rresult, Cmdliner, and Yojson
 - Typed Racket
 - Go
@@ -49,10 +57,27 @@ rather than artificially requiring standard-library-only solutions.
 - Nim
 - Scala 3 using Scala CLI as a JVM control case
 
-Deno is planned as a TypeScript runtime variant. C# file-based applications and
-F# scripts are possible stretch entries. Bash is intentionally not a
-competitor; a shebang or trivial harness glue is allowed, but benchmark logic
-must be written in the candidate language.
+C# file-based applications and F# scripts remain useful future entries. Bash is
+intentionally not a competitor; a shebang or trivial launcher is allowed, but
+benchmark logic is written in the candidate language.
+
+## Run
+
+All native toolchains are installed on the benchmark host:
+
+```sh
+python3 harness/conformance.py
+```
+
+Rebuild and verify the digest-pinned images, then repeat the measurements:
+
+```sh
+standard-proxy-env python3 harness/containers.py --no-cache
+python3 harness/containers.py --benchmark-only --benchmark-runs 30
+```
+
+Live GitHub collection through `gh` is shared and untimed; see
+[docs/live-github.md](docs/live-github.md).
 
 ## Principles
 

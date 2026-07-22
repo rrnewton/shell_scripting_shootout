@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-07-22T18:30:10.978880+00:00",
+  "git_commit": "db68e84f9d8ec28c58f8a67fa985a1a42adfae27",
+  "engine": "podman",
+  "no_cache": true,
+  "candidates": {
+    "d": {
+      "build_wall_seconds": 29.79570065997541,
+      "image_size_bytes": 722016637
+    },
+    "go": {
+      "build_wall_seconds": 13.729459739290178,
+      "image_size_bytes": 976763974
+    },
+    "nim": {
+      "build_wall_seconds": 11.456705809570849,
+      "image_size_bytes": 1389271168
+    },
+    "ocaml": {
+      "build_wall_seconds": 49.529563043266535,
+      "image_size_bytes": 1884101711
+    },
+    "python": {
+      "build_wall_seconds": 16.25400944147259,
+      "image_size_bytes": 315718156
+    },
+    "rust": {
+      "build_wall_seconds": 48.54527839273214,
+      "image_size_bytes": 1315740863
+    },
+    "rust-cargo-script": {
+      "build_wall_seconds": 34.54035031422973,
+      "image_size_bytes": 1733616409
+    },
+    "scala": {
+      "build_wall_seconds": 125.55438182968646,
+      "image_size_bytes": 560678947
+    },
+    "typed-racket": {
+      "build_wall_seconds": 20.110610641539097,
+      "image_size_bytes": 962569285
+    },
+    "typescript-bun": {
+      "build_wall_seconds": 16.898695401847363,
+      "image_size_bytes": 430968073
+    },
+    "typescript-deno": {
+      "build_wall_seconds": 17.156970070675015,
+      "image_size_bytes": 343220142
+    }
+  }
+}

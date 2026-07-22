@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "scale": "0-10",
+  "weights_percent": {
+    "ergonomics": 20,
+    "type_and_boundary_safety": 20,
+    "warm_performance": 20,
+    "installation_and_portability": 15,
+    "memory": 10,
+    "maintainability": 10,
+    "first_invocation": 5
+  },
+  "candidates": {
+    "rust": {
+      "ergonomics": 6.0,
+      "type_and_boundary_safety": 9.5,
+      "warm_performance": 10.0,
+      "installation_and_portability": 6.5,
+      "memory": 10.0,
+      "maintainability": 8.0,
+      "first_invocation": 5.0
+    },
+    "python": {
+      "ergonomics": 8.5,
+      "type_and_boundary_safety": 6.5,
+      "warm_performance": 6.5,
+      "installation_and_portability": 9.5,
+      "memory": 8.5,
+      "maintainability": 9.0,
+      "first_invocation": 9.0
+    },
+    "typescript-deno": {
+      "ergonomics": 7.5,
+      "type_and_boundary_safety": 7.5,
+      "warm_performance": 8.5,
+      "installation_and_portability": 8.0,
+      "memory": 5.5,
+      "maintainability": 8.0,
+      "first_invocation": 8.5
+    },
+    "typescript-bun": {
+      "ergonomics": 9.0,
+      "type_and_boundary_safety": 7.5,
+      "warm_performance": 7.5,
+      "installation_and_portability": 7.5,
+      "memory": 4.5,
+      "maintainability": 8.0,
+      "first_invocation": 8.5
+    },
+    "go": {
+      "ergonomics": 5.5,
+      "type_and_boundary_safety": 7.0,
+      "warm_performance": 8.0,
+      "installation_and_portability": 8.5,
+      "memory": 8.5,
+      "maintainability": 8.0,
+      "first_invocation": 9.0
+    },
+    "nim": {
+      "ergonomics": 6.5,
+      "type_and_boundary_safety": 7.0,
+      "warm_performance": 9.0,
+      "installation_and_portability": 6.5,
+      "memory": 9.5,
+      "maintainability": 6.0,
+      "first_invocation": 8.0
+    },
+    "ocaml": {
+      "ergonomics": 6.5,
+      "type_and_boundary_safety": 9.0,
+      "warm_performance": 7.0,
+      "installation_and_portability": 4.5,
+      "memory": 7.5,
+      "maintainability": 6.5,
+      "first_invocation": 4.5
+    },
+    "d": {
+      "ergonomics": 6.5,
+      "type_and_boundary_safety": 5.5,
+      "warm_performance": 6.0,
+      "installation_and_portability": 6.0,
+      "memory": 8.5,
+      "maintainability": 5.5,
+      "first_invocation": 7.0
+    },
+    "typed-racket": {
+      "ergonomics": 6.0,
+      "type_and_boundary_safety": 8.5,
+      "warm_performance": 2.0,
+      "installation_and_portability": 6.0,
+      "memory": 2.0,
+      "maintainability": 6.5,
+      "first_invocation": 7.5
+    },
+    "scala": {
+      "ergonomics": 8.5,
+      "type_and_boundary_safety": 9.0,
+      "warm_performance": 0.5,
+      "installation_and_portability": 4.0,
+      "memory": 0.5,
+      "maintainability": 7.5,
+      "first_invocation": 3.0
+    }
+  }
+}
