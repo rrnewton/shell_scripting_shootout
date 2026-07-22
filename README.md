@@ -18,6 +18,9 @@ measurement protocol, scoring, and initial competitor roster. See
 [docs/rust-runners.md](docs/rust-runners.md) for the initial Rust source-runner
 decision.
 
+Candidate toolchains are reproducible through the Podman/Docker workflow in
+[containers.md](containers.md).
+
 ## Priorities
 
 In approximate order, the shootout evaluates:

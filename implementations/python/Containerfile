@@ -1,0 +1,16 @@
+FROM docker.io/library/python:3.13.5-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY . .
+
+RUN python3 -m pip install --no-cache-dir \
+    -r implementations/python/requirements-dev.txt
+RUN cd implementations/python \
+    && python3 -m mypy --strict pr_plan tests \
+    && python3 -m unittest discover -s tests
+
+CMD ["python3", "harness/conformance.py", "--candidate", "python", "--require", "python"]
