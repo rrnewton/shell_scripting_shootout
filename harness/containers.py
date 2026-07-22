@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import json
 import os
 import shutil
 import subprocess
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from proxy_bridge import bridged_proxy
@@ -64,6 +67,16 @@ def main() -> int:
 
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
     bridge_context = bridged_proxy(proxy) if engine == "podman" else contextlib.nullcontext(proxy)
+    bootstrap: dict[str, object] = {
+        "schema_version": 1,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "git_commit": git_commit,
+        "engine": engine,
+        "no_cache": bool(args.no_cache),
+        "candidates": {},
+    }
+    bootstrap_candidates = bootstrap["candidates"]
+    assert isinstance(bootstrap_candidates, dict)
     with bridge_context as build_proxy:
         for name, containerfile in found:
             tag = f"shell-scripting-shootout-{name}:local"
@@ -83,7 +96,20 @@ def main() -> int:
             if args.no_cache:
                 build.append("--no-cache")
             build.append(str(ROOT))
+            build_started = time.perf_counter()
             run(build)
+            build_seconds = time.perf_counter() - build_started
+            inspect = subprocess.run(
+                [engine, "image", "inspect", tag, "--format", "{{.Size}}"],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            bootstrap_candidates[name] = {
+                "build_wall_seconds": build_seconds,
+                "image_size_bytes": int(inspect.stdout.strip()),
+            }
             run([engine, "run", "--rm", tag])
             if args.benchmark_runs:
                 command = [
@@ -112,6 +138,10 @@ def main() -> int:
                 result.parent.mkdir(parents=True, exist_ok=True)
                 result.write_text(process.stdout, encoding="utf-8")
                 print(f"wrote {result}")
+    bootstrap_path = ROOT / "results" / "raw" / "container-bootstrap.json"
+    bootstrap_path.parent.mkdir(parents=True, exist_ok=True)
+    bootstrap_path.write_text(json.dumps(bootstrap, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {bootstrap_path}")
     return 0
 
 

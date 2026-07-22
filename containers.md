@@ -24,6 +24,10 @@ Run the measurements inside each successfully built image and write raw JSON to
 standard-proxy-env python3 harness/containers.py --benchmark-runs 30
 ```
 
+The same run writes `results/raw/container-bootstrap.json` with build wall time
+and final image size. Use `--no-cache` when collecting reportable bootstrap
+numbers; base-image download time remains separately visible in the build log.
+
 The images are correctness and reproducibility environments. Performance
 measurements run *inside* an already-running container or directly on the host;
 container creation and `podman run` startup are never included in language
