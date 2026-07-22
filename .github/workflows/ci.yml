@@ -25,11 +25,13 @@ jobs:
       fail-fast: false
       matrix:
         candidate:
+          - d
           - go
           - nim
           - ocaml
           - python
           - rust
+          - rust-cargo-script
           - typed-racket
           - typescript-bun
     steps:
