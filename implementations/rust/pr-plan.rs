@@ -425,14 +425,7 @@ fn validate_timestamp(field: &str, value: &str) -> Result<()> {
     }
     match &bytes[zone_start..] {
         [b'Z'] => Ok(()),
-        [
-            b'+' | b'-',
-            zone_hour_1,
-            zone_hour_2,
-            b':',
-            zone_minute_1,
-            zone_minute_2,
-        ] => {
+        [b'+' | b'-', zone_hour_1, zone_hour_2, b':', zone_minute_1, zone_minute_2] => {
             let zone_hour = digits(&[*zone_hour_1, *zone_hour_2]).ok_or_else(&invalid)?;
             let zone_minute = digits(&[*zone_minute_1, *zone_minute_2]).ok_or_else(&invalid)?;
             if zone_hour <= 23 && zone_minute <= 59 {
