@@ -1,0 +1,29 @@
+FROM docker.io/library/ubuntu:24.04@sha256:52df9b1ee71626e0088f7d400d5c6b5f7bb916f8f0c82b474289a4ece6cf3faf
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl gcc git libc6-dev python3 time xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG DMD_VERSION=2.112.0
+ARG DMD_SHA256=4556ecde412c6c43662cd1c6e7cec5c6d567b7e74508287a8a0c3c6c506a7e94
+RUN curl --fail --location --silent --show-error \
+        --output /tmp/dmd.tar.xz \
+        "https://downloads.dlang.org/releases/2.x/${DMD_VERSION}/dmd.${DMD_VERSION}.linux.tar.xz" \
+    && echo "${DMD_SHA256}  /tmp/dmd.tar.xz" | sha256sum --check --strict \
+    && mkdir -p /opt/dlang \
+    && tar -xJf /tmp/dmd.tar.xz -C /opt/dlang \
+    && rm /tmp/dmd.tar.xz
+
+ENV PATH="/opt/dlang/dmd2/linux/bin64:${PATH}"
+
+WORKDIR /work
+COPY . .
+
+RUN rm -rf implementations/d/.rdmd-cache \
+    && cd implementations/d \
+    && rdmd -w -preview=dip1000 -unittest --main pr_plan.d \
+    && cd /work \
+    && python3 harness/conformance.py --candidate d --require d
+
+CMD ["python3", "harness/conformance.py", "--candidate", "d", "--require", "d"]

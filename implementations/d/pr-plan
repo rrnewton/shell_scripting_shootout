@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+mkdir -p -- "$directory/.rdmd-cache"
+exec rdmd --tmpdir="$directory/.rdmd-cache" -w -preview=dip1000 \
+    "$directory/pr_plan.d" "$@"
