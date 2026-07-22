@@ -17,6 +17,13 @@ python3 harness/containers.py --candidate rust --candidate python
 python3 harness/containers.py --engine docker --candidate typescript-bun
 ```
 
+Run the measurements inside each successfully built image and write raw JSON to
+`results/raw/container-<candidate>.json` with:
+
+```sh
+standard-proxy-env python3 harness/containers.py --benchmark-runs 30
+```
+
 The images are correctness and reproducibility environments. Performance
 measurements run *inside* an already-running container or directly on the host;
 container creation and `podman run` startup are never included in language

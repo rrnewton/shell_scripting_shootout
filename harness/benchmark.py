@@ -10,6 +10,7 @@ import os
 import platform
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -144,7 +145,7 @@ def main() -> int:
         candidate_results[name] = {
             scenario: measure(command, args.runs) for scenario, command in scenarios.items()
         }
-        print(f"measured {name}")
+        print(f"measured {name}", file=sys.stderr)
 
     rendered = json.dumps(result, indent=2) + "\n"
     if args.output:

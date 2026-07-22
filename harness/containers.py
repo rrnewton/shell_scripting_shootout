@@ -8,6 +8,7 @@ import contextlib
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from proxy_bridge import bridged_proxy
@@ -33,6 +34,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--engine", default=None)
     parser.add_argument("--candidate", action="append", default=[])
     parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument(
+        "--benchmark-runs",
+        type=int,
+        help="after conformance, benchmark inside each image and save raw JSON",
+    )
     return parser.parse_args()
 
 
@@ -72,6 +78,31 @@ def main() -> int:
             build.append(str(ROOT))
             run(build)
             run([engine, "run", "--rm", tag])
+            if args.benchmark_runs:
+                command = [
+                    engine,
+                    "run",
+                    "--rm",
+                    tag,
+                    "python3",
+                    "harness/benchmark.py",
+                    "--candidate",
+                    name,
+                    "--runs",
+                    str(args.benchmark_runs),
+                ]
+                print("+ " + " ".join(command), flush=True)
+                process = subprocess.run(
+                    command, cwd=ROOT, capture_output=True, text=True, check=False
+                )
+                if process.returncode != 0:
+                    sys.stderr.write(process.stderr)
+                    raise subprocess.CalledProcessError(process.returncode, command)
+                sys.stderr.write(process.stderr)
+                result = ROOT / "results" / "raw" / f"container-{name}.json"
+                result.parent.mkdir(parents=True, exist_ok=True)
+                result.write_text(process.stdout, encoding="utf-8")
+                print(f"wrote {result}")
     return 0
 
 
