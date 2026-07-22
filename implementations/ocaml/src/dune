@@ -1,0 +1,11 @@
+(library
+ (name pr_plan)
+ (modules model decode planner git_analysis render)
+ (libraries astring bos fpath ptime rresult yojson))
+
+(executable
+ (name main)
+ (modules main)
+ (public_name pr-plan)
+ (libraries cmdliner fpath pr_plan))
+

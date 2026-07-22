@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+binary="$root/_build/default/src/main.exe"
+build_stamp="$root/_build/pr-plan-build.stamp"
+build_lock="$root/.pr-plan-build.lock"
+
+needs_build() {
+  if [ ! -x "$binary" ] || [ ! -f "$build_stamp" ]; then
+    return 0
+  fi
+  find "$root/src" "$root/test" -type f \( -name '*.ml' -o -name '*.mli' -o -name 'dune' \) \
+    -newer "$build_stamp" -print -quit | grep -q . && return 0
+  [ "$root/dune-project" -nt "$build_stamp" ] || [ "$root/pr_plan.opam" -nt "$build_stamp" ]
+}
+
+while needs_build; do
+  if mkdir "$build_lock" 2>/dev/null; then
+    trap 'rmdir "$build_lock" 2>/dev/null || true' 0 1 2 3 15
+    if needs_build; then
+      if command -v opam >/dev/null 2>&1; then
+        eval "$(opam env --set-switch 2>/dev/null)"
+      fi
+      command -v dune >/dev/null 2>&1 || {
+        echo "pr-plan: error: dune is not installed" >&2
+        exit 127
+      }
+      dune build --root "$root" --display quiet src/main.exe
+      touch "$build_stamp"
+    fi
+    rmdir "$build_lock"
+    trap - 0 1 2 3 15
+  else
+    attempts=0
+    while [ -d "$build_lock" ] && [ "$attempts" -lt 6000 ]; do
+      sleep 0.05
+      attempts=$((attempts + 1))
+    done
+    if [ -d "$build_lock" ]; then
+      echo "pr-plan: error: timed out waiting for the build lock $build_lock" >&2
+      exit 1
+    fi
+  fi
+done
+
+exec "$binary" "$@"
