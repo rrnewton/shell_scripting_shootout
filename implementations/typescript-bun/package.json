@@ -1,0 +1,19 @@
+{
+  "name": "pr-plan-typescript-bun",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pr-plan": "bun run src/cli.ts",
+    "typecheck": "bun --bun ./node_modules/.bin/tsgo --noEmit",
+    "test": "bun test",
+    "check": "bun run typecheck && bun test"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2"
+  }
+}

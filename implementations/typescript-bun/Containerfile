@@ -1,0 +1,15 @@
+FROM oven/bun:1.3.14
+
+USER root
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+COPY . .
+
+RUN cd implementations/typescript-bun \
+    && bun install --frozen-lockfile \
+    && bun run check
+
+CMD ["python3", "harness/conformance.py", "--candidate", "typescript-bun", "--require", "typescript-bun"]

@@ -1,0 +1,157 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`pure planning JSON and human rendering are byte-for-byte repeatable 1`] = `
+"acme/widgets: 3 PRs, 1 conflicts, ready #1
+"
+`;
+
+exports[`pure planning JSON and human rendering are byte-for-byte repeatable 2`] = `
+"{
+  "repository": "acme/widgets",
+  "nodes": [
+    {
+      "pr": 1,
+      "title": "Base change",
+      "author": "alice",
+      "head_ref": "feature/one",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "additions": 10,
+      "deletions": 1,
+      "files_count": 2,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 2,
+      "title": "Stacked draft",
+      "author": "unknown",
+      "head_ref": "feature/two",
+      "base_ref": "feature/one",
+      "draft": true,
+      "mergeable": "UNKNOWN",
+      "review_decision": "NONE",
+      "additions": 3,
+      "deletions": 0,
+      "files_count": 2,
+      "base_conflict_paths": []
+    },
+    {
+      "pr": 3,
+      "title": "Conflicting change",
+      "author": "carol",
+      "head_ref": "feature/three",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "CONFLICTING",
+      "review_decision": "CHANGES_REQUESTED",
+      "additions": 4,
+      "deletions": 2,
+      "files_count": 2,
+      "base_conflict_paths": [
+        "src/base.ts"
+      ]
+    }
+  ],
+  "conflict_edges": [
+    {
+      "a": 3,
+      "b": 1,
+      "paths": [
+        "src/conflict.ts"
+      ]
+    }
+  ],
+  "file_overlap_edges": [
+    {
+      "a": 1,
+      "b": 2,
+      "paths": [
+        "src/shared.ts"
+      ]
+    },
+    {
+      "a": 1,
+      "b": 3,
+      "paths": [
+        "src/shared.ts"
+      ]
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "paths": [
+        "src/shared.ts"
+      ]
+    }
+  ],
+  "ordering_edges": [
+    {
+      "before": 1,
+      "after": 2,
+      "reason": "base-ref"
+    }
+  ],
+  "stacks": [
+    [
+      1,
+      2
+    ]
+  ],
+  "suggested_landing_batches": [
+    [
+      1
+    ],
+    [
+      2,
+      3
+    ]
+  ],
+  "suggested_rebase_plan": [
+    {
+      "pr": 2,
+      "after": [
+        1
+      ],
+      "reasons": [
+        "stack-dependency"
+      ]
+    },
+    {
+      "pr": 3,
+      "after": [
+        1
+      ],
+      "reasons": [
+        "pair-conflict"
+      ]
+    }
+  ],
+  "ready_landing_batches": [
+    [
+      1
+    ]
+  ],
+  "ready_now": [
+    1
+  ],
+  "held_prs": [
+    {
+      "pr": 2,
+      "reasons": [
+        "draft"
+      ]
+    },
+    {
+      "pr": 3,
+      "reasons": [
+        "local-base-conflict",
+        "github-base-conflicting"
+      ]
+    }
+  ],
+  "ordering_cycles": []
+}
+"
+`;

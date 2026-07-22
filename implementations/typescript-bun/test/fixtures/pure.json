@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "repository": "acme/widgets",
+  "prs": [
+    {
+      "number": 1,
+      "title": "Base change",
+      "author": "alice",
+      "head_ref": "feature/one",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "MERGEABLE",
+      "review_decision": "APPROVED",
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-02T00:00:00Z",
+      "additions": 10,
+      "deletions": 1,
+      "files": ["src/shared.ts", "src/a.ts"],
+      "base_conflict_paths": []
+    },
+    {
+      "number": 2,
+      "title": "Stacked draft",
+      "author": null,
+      "head_ref": "feature/two",
+      "base_ref": "feature/one",
+      "draft": true,
+      "mergeable": "UNKNOWN",
+      "review_decision": "NONE",
+      "created_at": "2026-01-03T00:00:00Z",
+      "updated_at": "2026-01-04T00:00:00Z",
+      "additions": 3,
+      "deletions": 0,
+      "files": ["src/shared.ts", "src/b.ts"],
+      "base_conflict_paths": []
+    },
+    {
+      "number": 3,
+      "title": "Conflicting change",
+      "author": "carol",
+      "head_ref": "feature/three",
+      "base_ref": "main",
+      "draft": false,
+      "mergeable": "CONFLICTING",
+      "review_decision": "CHANGES_REQUESTED",
+      "created_at": "2026-01-05T00:00:00Z",
+      "updated_at": "2026-01-06T00:00:00Z",
+      "additions": 4,
+      "deletions": 2,
+      "files": ["src/c.ts", "src/shared.ts"],
+      "base_conflict_paths": ["src/base.ts"]
+    }
+  ],
+  "conflict_edges": [
+    { "a": 3, "b": 1, "paths": ["src/conflict.ts"] }
+  ],
+  "ancestry_edges": [
+    { "before": 1, "after": 2 }
+  ]
+}
