@@ -4,21 +4,21 @@
     "d": {
       "implementation": {
         "files": 1,
-        "lines": 1517,
-        "nonblank_lines": 1414,
-        "bytes": 49251
+        "lines": 1313,
+        "nonblank_lines": 1223,
+        "bytes": 41400
+      },
+      "tests": {
+        "files": 2,
+        "lines": 213,
+        "nonblank_lines": 198,
+        "bytes": 8167
       },
       "launcher": {
         "files": 1,
         "lines": 7,
         "nonblank_lines": 6,
         "bytes": 238
-      },
-      "tests": {
-        "files": 1,
-        "lines": 9,
-        "nonblank_lines": 7,
-        "bytes": 316
       },
       "container": {
         "files": 1,
@@ -152,15 +152,15 @@
     "rust": {
       "implementation": {
         "files": 1,
-        "lines": 1627,
-        "nonblank_lines": 1526,
-        "bytes": 51690
+        "lines": 1329,
+        "nonblank_lines": 1248,
+        "bytes": 40505
       },
       "tests": {
-        "files": 1,
-        "lines": 3,
-        "nonblank_lines": 3,
-        "bytes": 71
+        "files": 2,
+        "lines": 301,
+        "nonblank_lines": 281,
+        "bytes": 11256
       },
       "launcher": {
         "files": 1,

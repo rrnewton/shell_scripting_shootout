@@ -56,8 +56,7 @@ SKIP_PARTS = {
 }
 
 
-def line_metrics(path: Path) -> dict[str, int]:
-    text = path.read_text(encoding="utf-8")
+def text_metrics(text: str) -> dict[str, int]:
     lines = text.splitlines()
     return {
         "files": 1,
@@ -65,6 +64,52 @@ def line_metrics(path: Path) -> dict[str, int]:
         "nonblank_lines": sum(1 for line in lines if line.strip()),
         "bytes": len(text.encode("utf-8")),
     }
+
+
+def embedded_source_regions(
+    candidate: str, path: Path, text: str
+) -> list[tuple[str, str]] | None:
+    """Split language-native test blocks without changing their source layout."""
+    lines = text.splitlines(keepends=True)
+    if candidate == "rust" and path.name == "pr-plan.rs":
+        marker = next(
+            (index for index, line in enumerate(lines) if line.strip() == "#[cfg(test)]"),
+            None,
+        )
+        if marker is not None:
+            return [
+                ("implementation", "".join(lines[:marker])),
+                ("tests", "".join(lines[marker:])),
+            ]
+
+    if candidate == "d" and path.name == "pr_plan.d":
+        marker = next(
+            (
+                index
+                for index, line in enumerate(lines)
+                if line.strip() == "version (unittest)"
+            ),
+            None,
+        )
+        if marker is not None:
+            continuation = next(
+                (
+                    index
+                    for index in range(marker + 1, len(lines))
+                    if lines[index].strip() == "else"
+                ),
+                None,
+            )
+            if continuation is not None:
+                return [
+                    (
+                        "implementation",
+                        "".join(lines[:marker] + lines[continuation:]),
+                    ),
+                    ("tests", "".join(lines[marker:continuation])),
+                ]
+
+    return None
 
 
 def add(target: dict[str, int], value: dict[str, int]) -> None:
@@ -106,7 +151,16 @@ def collect() -> dict[str, object]:
             category = classify(directory.name, path.relative_to(directory))
             if category is None:
                 continue
-            add(categories.setdefault(category, {}), line_metrics(path))
+            text = path.read_text(encoding="utf-8")
+            regions = embedded_source_regions(directory.name, path, text)
+            if category == "implementation" and regions is not None:
+                for region_category, region_text in regions:
+                    add(
+                        categories.setdefault(region_category, {}),
+                        text_metrics(region_text),
+                    )
+            else:
+                add(categories.setdefault(category, {}), text_metrics(text))
         if categories:
             candidates[directory.name] = categories
     return result

@@ -7,7 +7,6 @@ import argparse
 import json
 import math
 import os
-import platform
 import statistics
 import subprocess
 import sys
@@ -125,11 +124,6 @@ def main() -> int:
         "schema_version": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_commit": git_commit(),
-        "host": {
-            "platform": platform.platform(),
-            "python": platform.python_version(),
-            "cpu_count": os.cpu_count(),
-        },
         "candidates": {},
     }
     candidate_results = result["candidates"]

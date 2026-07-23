@@ -2,11 +2,6 @@
   "schema_version": 1,
   "timestamp": "2026-07-22T18:41:17.593998+00:00",
   "git_commit": "db68e84f9d8ec28c58f8a67fa985a1a42adfae27",
-  "host": {
-    "platform": "Linux-kernel-version-omitted-x86_64-with",
-    "python": "3.12.13",
-    "cpu_count": null
-  },
   "candidates": {
     "scala": {
       "help": {

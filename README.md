@@ -63,7 +63,8 @@ benchmark logic is written in the candidate language.
 
 ## Run
 
-All native toolchains are installed on the benchmark host:
+With the candidate toolchains installed, run the shared native conformance
+suite:
 
 ```sh
 python3 harness/conformance.py
@@ -72,7 +73,7 @@ python3 harness/conformance.py
 Rebuild and verify the digest-pinned images, then repeat the measurements:
 
 ```sh
-standard-proxy-env python3 harness/containers.py --no-cache
+python3 harness/containers.py --no-cache
 python3 harness/containers.py --benchmark-only --benchmark-runs 30
 ```
 

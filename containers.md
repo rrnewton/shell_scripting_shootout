@@ -21,7 +21,7 @@ Run the measurements inside each successfully built image and write raw JSON to
 `results/raw/container-<candidate>.json` with:
 
 ```sh
-standard-proxy-env python3 harness/containers.py --benchmark-runs 30
+python3 harness/containers.py --benchmark-runs 30
 ```
 
 After images have already passed conformance, repeat only the measurements
@@ -42,17 +42,17 @@ invocation timings. Conformance and benchmark containers run with networking
 disabled after the image build, which also verifies that cached dependencies
 are sufficient for unchanged source execution.
 
-Builds use host networking so developer-box proxy endpoints supplied by
-`standard-proxy-env` remain reachable from build steps:
+Builds use host networking and forward the standard `HTTP_PROXY`,
+`HTTPS_PROXY`, and lowercase proxy variables. For example:
 
 ```sh
-standard-proxy-env python3 harness/containers.py --candidate python
+HTTPS_PROXY=http://proxy.example:8080 \
+  python3 harness/containers.py --candidate python
 ```
 
-On hosts where `standard-proxy-env` exposes an IPv6-only endpoint that rootless Podman
-cannot route to, the harness creates a localhost relay for the duration of the
-build. Internal proxy addresses are not stored in images or repository
-configuration.
+When a configured proxy endpoint is not directly routable from rootless
+Podman, the harness creates a localhost relay for the duration of the build.
+Proxy addresses are not stored in images or repository configuration.
 
 Container base images and language dependency versions are pinned in each
 candidate. Image digests should be refreshed deliberately and recorded in the

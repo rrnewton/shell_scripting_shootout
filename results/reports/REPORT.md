@@ -46,9 +46,9 @@ Every candidate implements the same `pr-plan` program:
 The final shared suite rejects wrong scalar types, invalid enums and RFC 3339
 timestamps, unknown fields, duplicate PR numbers and branch names, dangling
 edges, and unsafe Git revisions. All eleven images pass candidate-specific
-build checks and the shared suite with networking disabled after build. All
-launchers also pass it directly on the CentOS Stream 9 host; this caught and
-fixed a real Racket 7.9 compatibility failure.
+build checks and the shared suite with networking disabled after build. The
+native launcher suite also covers Racket 7.9 compatibility; this caught and
+fixed a real version-specific failure.
 
 Live GitHub collection is deliberately shared and untimed. The
 [`gh` collector](../../docs/live-github.md) strictly validates `gh pr list`,
@@ -110,15 +110,16 @@ quality score.
 | Python | 892 | 340 | **3** | 20 | 12 |
 | Nim | 1084 | 140 | 26 | 0 | 10 |
 | OCaml | 1199 | 111 | 60 | 32 | 31 |
+| D | 1223 | 198 | 6 | 0 | 23 |
+| Rust | 1248 | 281 | 3 | 0 | 11 |
 | TypeScript / Deno | 1256 | 445 | 19 | 20 | 15 |
 | Typed Racket | 1320 | 121 | 55 | 0 | 17 |
-| D | 1414 | 7 | 6 | 0 | 23 |
 | Go | 1502 | 319 | 23 | 3 | 12 |
-| Rust | 1526 | 3 | 3 | 0 | 11 |
 
-Rust and D embed substantial unit-test blocks in their implementation files,
-so this table overstates their production lines and understates their test
-lines. Cargo `-Zscript` reuses the Rust source and adds 40 nonblank lines of
+The metrics tool attributes Rust's `#[cfg(test)]` module and D's
+`version (unittest)` block to tests even though they remain co-located with the
+implementation, preserving each language's idiomatic single-file scripting
+layout. Cargo `-Zscript` reuses the Rust source and adds 40 nonblank lines of
 runner/generator logic; it is not a separate application implementation.
 
 ## Bootstrap and Portability
@@ -149,9 +150,8 @@ Dune, and seven direct libraries. Scala requires a JDK, Scala CLI, Coursier
 resolution, and a working Maven mirror. D, Nim, and Racket worked natively but
 have weaker package availability/version currency across enterprise distros.
 
-All required native toolchains are installed on `benchmark host`; exact versions and
-locations are in [the native setup note](../../docs/native-toolchains.md) and
-[`host-environment.json`](../raw/host-environment.json).
+Reference native toolchain versions and portability notes are in the
+[native toolchain reference](../../docs/native-toolchains.md).
 
 ## Type and Process Safety
 
@@ -236,10 +236,10 @@ focused cache invalidation/concurrent-launch tests, but this report does not
 claim a measured cache-reliability ranking. No agent-success score is inferred
 from commit history because prompts/iterations are not normalized evidence.
 
-The host was a shared shared development box with unrelated background work.
-All raw samples are retained and no outliers were removed. Container images use
-different userlands, so the results represent each documented deployment
-environment rather than a libc-only laboratory comparison.
+All raw samples are retained and no outliers were removed. Infrastructure
+identifiers are intentionally omitted from the published artifacts. Container
+images use different userlands, so the results represent each documented
+deployment environment rather than a libc-only laboratory comparison.
 
 ## Reproduce
 
@@ -248,7 +248,7 @@ environment rather than a libc-only laboratory comparison.
 python3 harness/conformance.py
 
 # Clean digest-pinned builds and offline conformance
-standard-proxy-env python3 harness/containers.py --no-cache
+python3 harness/containers.py --no-cache
 
 # Final fresh-process measurements, reusing verified images
 python3 harness/containers.py --benchmark-only --benchmark-runs 30
